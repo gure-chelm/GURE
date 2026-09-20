@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Katalog Urządzeń Elektrycznych — V4</title>
+<style>
+:root{--bg:#eef1f4;--panel:#fff;--ink:#17202a;--muted:#68737c;--line:#d7dde2;--accent:#1769e0;--danger:#c93636;--soft:#f5f7f9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}
+header{background:#17202a;color:#fff;padding:20px max(18px,calc((100vw - 1180px)/2))}
+.headerin{max-width:1180px;margin:auto}.brand{font-size:25px;font-weight:800}.sub{color:#cbd2d8;margin-top:5px}
+main{max-width:1180px;margin:18px auto;padding:0 14px}.panel{background:var(--panel);border-radius:15px;box-shadow:0 3px 16px #0001;padding:16px;margin-bottom:14px}
+.searchrow{display:flex;gap:9px}.searchrow input{flex:1}
+input,select,textarea{font:inherit;border:1px solid var(--line);border-radius:9px;padding:11px 12px;background:#fff;color:var(--ink);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px #1769e018}
+.btn{border:0;border-radius:9px;padding:11px 14px;font-weight:700;cursor:pointer;background:#e9eef4;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.btn.primary{background:var(--accent);color:#fff}.btn.danger{background:#fdeaea;color:var(--danger)}.btn.small{padding:8px 10px;font-size:13px}
+.filters{display:flex;gap:9px;margin-top:10px;flex-wrap:wrap}.filters select{min-width:260px;max-width:100%}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}.pill{background:#edf1f5;border-radius:999px;padding:7px 10px;font-size:12px}
+.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}.toolbar h2{margin:0;font-size:18px}.actions{display:flex;gap:7px;flex-wrap:wrap}
+.results{display:grid;gap:10px}.card{background:#fff;border:1px solid #e2e6e9;border-radius:13px;padding:14px}.top{display:flex;justify-content:space-between;gap:10px}.symbol{font-size:19px;font-weight:800}.name{margin-top:3px}.tag{background:#edf1f5;border-radius:7px;padding:5px 8px;font-size:12px;height:max-content}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;margin-top:11px}.meta>div{background:var(--soft);padding:9px;border-radius:8px}.label{font-size:10px;text-transform:uppercase;color:var(--muted)}.value{font-weight:700;margin-top:3px}
+.cardactions{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.empty{text-align:center;padding:30px;color:var(--muted)}
+.selected{border:2px solid var(--accent);background:#f7faff}.selectedTitle{color:var(--accent);font-weight:800;font-size:12px;text-transform:uppercase;margin-bottom:6px}
+.boardHead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.boardName{font-size:20px;font-weight:800}.boardLoc{margin-top:4px;color:var(--muted)}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;padding:15px;z-index:20}.modal.open{display:flex}.dialog{background:#fff;width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:16px;padding:18px}.dialog h2{margin:0 0 15px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:700;color:var(--muted)}
+.dialogactions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px;flex-wrap:wrap}.boardDevices{margin-top:15px}.boardDevices h3{font-size:15px;margin:0 0 9px}
+.miniDevice{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px;background:var(--soft);border-radius:9px;margin-top:7px}.miniDevice b{font-size:14px}.miniDevice span{color:var(--muted);font-size:13px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#17202a;color:#fff;padding:11px 15px;border-radius:10px;display:none;z-index:30}
+@media(max-width:650px){.searchrow{flex-direction:column}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.brand{font-size:22px}.meta{grid-template-columns:1fr}.filters select{min-width:0;width:100%}.boardHead{flex-direction:column}}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer}.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.adminbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px}.adminbadge{font-size:12px;font-weight:800;padding:7px 10px;border-radius:999px;background:#e8f6ed;color:#17713a}.lockbadge{background:#f1f3f5;color:#66717a}
+.adminonly{display:none!important}.admin-mode .adminonly{display:inline-flex!important}
+.termStatus{font-weight:800}.statusOk{color:#17713a}.statusWarn{color:#a36a00}.statusOver{color:#b32929}
+.photoStatus{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--muted)}.spinner{width:14px;height:14px;border:2px solid #cfd6dc;border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}.check{color:#198754;font-size:16px}@keyframes spin{to{transform:rotate(360deg)}}
+.audit{font-size:10px;color:#8a939b;margin-top:8px;text-align:right}.syncbox{padding:10px;border:1px dashed var(--line);border-radius:10px;margin-top:8px}.syncbox b{font-size:12px}.userbadge{font-size:10px;padding:3px 7px;border-radius:999px;background:#eef2f5;color:#5b6570}
+</style>
+<style>.photoThumb{width:86px;height:64px;object-fit:cover;border-radius:9px;border:1px solid var(--line);cursor:pointer}.photoPreview{max-width:100%;max-height:220px;border-radius:12px;border:1px solid var(--line);object-fit:cover;margin-top:8px}.history{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.historyItem{padding:5px 0;font-size:13px}.hint{font-size:12px;color:var(--muted);margin:6px 0 10px}</style><style>.audit{font-size:10px;line-height:1.35;color:var(--muted);margin-top:10px}.audit span{font-size:10px;opacity:.9}</style></head>
+<body>
+<header><div class="headerin">
+  <div class="brand">⚡ Katalog Urządzeń Elektrycznych</div>
+  <div class="sub">V1.9.1 — urządzenia, rozdzielnie, termopary i inne urządzenia</div>
+</div></header>
+
+<main>
+<div class="adminbar">
+  <span id="adminState" class="adminbadge lockbadge">🔒 Tryb użytkownika</span>
+  <button class="btn" onclick="adminLogin()">⚙ Administrator</button>
+  <span class="hint" style="margin-left:8px">Hasło administratora jest ukryte.</span>
+  <button id="logoutBtn" class="btn adminonly" onclick="adminLogout()">Wyloguj</button>
+</div>
+<div class="tabs">
+  <button id="tabDevices" class="tab active" onclick="setTab('devices')">⚡ Urządzenia</button>
+  <button id="tabBoards" class="tab" onclick="setTab('boards')">🗄️ Rozdzielnie</button>
+  <button id="tabThermo" class="tab" onclick="setTab('thermo')">🌡️ Termopary</button>
+  <button id="tabOther" class="tab" onclick="setTab('other')">📍 Inne urządzenia</button>
+</div>
+<section class="panel">
+  <div class="searchrow">
+    <input id="search" placeholder="Wpisz symbol albo nazwę urządzenia…">
+    <button class="btn primary" onclick="doSearch()">🔎 Szukaj</button>
+    <button class="btn" onclick="clearSearch()">Wyczyść</button>
+  </div>
+
+  <div id="deviceFilters" class="filters">
+    <select id="boardFilter">
+      <option value="">Wszystkie rozdzielnie</option>
+    </select>
+  </div>
+
+  <div class="stats">
+    <span class="pill" id="count"></span>
+    <span class="pill" id="total"></span>
+    <span class="pill">Enter = wyszukaj</span>
+  </div>
+</section>
+<section id="thermoSearchPanel" class="panel" style="display:none">
+  <div class="searchrow">
+    <input id="thermoSearch" placeholder="Wpisz symbol albo lokalizację termopary…">
+    <button class="btn primary" onclick="renderThermos()">🔎 Szukaj</button>
+    <button class="btn" onclick="thermoSearch.value='';renderThermos()">Wyczyść</button>
+  </div>
+</section>
+
+
+<section id="otherSearchPanel" class="panel" style="display:none">
+  <div class="searchrow">
+    <input id="otherSearch" placeholder="Wpisz symbol, nazwę albo lokalizację…">
+    <button class="btn primary" onclick="renderOthers()">🔎 Szukaj</button>
+    <button class="btn" onclick="otherSearch.value='';renderOthers()">Wyczyść</button>
+  </div>
+</section>
+<section id="devicesPanel" class="panel">
+  <div class="toolbar">
+    <h2>Urządzenia</h2>
+    <div class="actions">
+      <button class="btn primary adminonly" onclick="openDevice()">＋ Dodaj urządzenie</button>
+      <button class="btn adminonly" onclick="openBoard()">＋ Dodaj rozdzielnię</button>
+      <button class="btn adminonly" onclick="exportDB()">⬇ Eksportuj pełną bazę</button>
+      <label class="btn adminonly" style="cursor:pointer">⬆ Scal / importuj bazę
+        <input id="importFile" type="file" accept=".json" style="display:none" onchange="importDB(event)">
+      </label>
+    </div>
+  </div>
+
+  <div id="selectionInfo"></div>
+  <div id="results" class="results"></div>
+</section>
+
+<section id="boardsPanel" class="panel" style="display:none">
+  <div class="toolbar">
+    <h2>Rozdzielnie</h2>
+    <button class="btn" onclick="renderBoards()">Odśwież</button>
+  </div>
+  <div id="boards" class="results"></div>
+</section>
+
+<section id="thermoPanel" class="panel" style="display:none">
+  <div class="toolbar">
+    <h2>Termopary</h2>
+    <button class="btn primary adminonly" onclick="openThermo()">＋ Dodaj termoparę</button>
+  </div>
+  <div id="thermos" class="results"></div>
+</section>
+</main>
+
+<section id="otherPanel" class="panel" style="display:none">
+  <div class="toolbar"><h2>Inne urządzenia</h2><button class="btn primary adminonly" onclick="openOther()">＋ Dodaj urządzenie</button></div>
+  <div id="others" class="results"></div>
+</section>
+<div id="modal" class="modal"><div class="dialog" id="dialog"></div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+
+
+let isAdmin = false;
+let activeTab = "devices";
+
+function setTab(tab){
+  activeTab=tab;
+  tabDevices.classList.toggle("active",tab==="devices");
+  tabBoards.classList.toggle("active",tab==="boards");
+  tabThermo.classList.toggle("active",tab==="thermo");
+  tabOther.classList.toggle("active",tab==="other");
+  document.getElementById("devicesPanel").style.display=tab==="devices"?"block":"none";
+  document.getElementById("boardsPanel").style.display=tab==="boards"?"block":"none";
+  document.getElementById("thermoPanel").style.display=tab==="thermo"?"block":"none";
+  document.getElementById("thermoSearchPanel").style.display=tab==="thermo"?"block":"none";
+  document.getElementById("otherPanel").style.display=tab==="other"?"block":"none";
+  document.getElementById("otherSearchPanel").style.display=tab==="other"?"block":"none";
+  const mainSearch=document.querySelector("main > .panel");
+  if(mainSearch) mainSearch.style.display=(tab==="devices"||tab==="boards")?"block":"none";
+  if(tab==="thermo") renderThermos(); else if(tab==="other") renderOthers(); else render();
+}
+
+function updateAdminUI(){
+  document.body.classList.toggle("admin-mode",isAdmin);
+  adminState.textContent=isAdmin?`🔓 ${ADMINS[currentAdmin]?.name||"Administrator"}`:"🔒 Tryb użytkownika";
+  adminState.className="adminbadge"+(isAdmin?"":" lockbadge");
+}
+const ADMINS={MONSTER:{name:"Mateusz"},BLACK:{name:"Paweł"}};
+let currentAdmin=null;
+function adminLogin(){
+  const p=prompt("Podaj hasło administratora:");
+  if(p && ADMINS[p]){currentAdmin=p;isAdmin=true;updateAdminUI();render();renderThermos();renderOthers();toast("Zalogowano: "+ADMINS[p].name)}
+  else if(p!==null) alert("Nieprawidłowe hasło.");
+}
+function adminLogout(){isAdmin=false;currentAdmin=null;updateAdminUI();render();renderThermos();renderOthers();toast("Wylogowano administratora")}
+function requireAdmin(){if(!isAdmin){alert("Ta operacja wymaga uprawnień administratora.");return false}return true}
+
+function nowISO(){return new Date().toISOString();}
+function uid(prefix="id"){return prefix+"_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,8)}
+function auditNew(obj){obj.createdBy=currentAdmin?ADMINS[currentAdmin].name:"Nieznany";obj.createdAt=nowISO();obj.modifiedBy=obj.createdBy;obj.modifiedAt=obj.createdAt;return obj}
+function auditEdit(obj){obj.modifiedBy=currentAdmin?ADMINS[currentAdmin].name:obj.modifiedBy||"Nieznany";obj.modifiedAt=nowISO();return obj}
+function auditText(x){return `<div class="audit">Dodano: ${esc(formatDateTime(x.createdAt))}<br><span>Przez: ${esc(x.createdBy||"—")}</span></div>`}
+function formatDateTime(v){if(!v)return "—";const d=new Date(v);return isNaN(d)?String(v):d.toLocaleString("pl-PL",{dateStyle:"short",timeStyle:"short"})}
+function migrateAudit(){
+  [db.urzadzenia,db.rozdzielnie,db.termopary,db.inneUrzadzenia].forEach(arr=>(arr||[]).forEach(x=>{if(!x.createdBy)x.createdBy="Dane demonstracyjne";if(!x.createdAt)x.createdAt=new Date().toISOString();if(!x.modifiedBy)x.modifiedBy=x.createdBy;if(!x.modifiedAt)x.modifiedAt=x.createdAt;}));
+  saveDB();
+}
+function mergeArray(local,incoming,key){
+  const map=new Map(local.map(x=>[String(x[key]),x])); let added=0,updated=0;
+  for(const item of incoming){const k=String(item[key]);const old=map.get(k);if(!old){map.set(k,item);added++;continue} const a=new Date(item.modifiedAt||item.createdAt||0).getTime(),b=new Date(old.modifiedAt||old.createdAt||0).getTime(); if(a>b){map.set(k,item);updated++;}}
+  return {items:[...map.values()],added,updated};
+}
+function normalizeImported(x){if(!x||!x.urzadzenia||!x.rozdzielnie)throw Error();return {urzadzenia:x.urzadzenia||[],rozdzielnie:x.rozdzielnie||[],termopary:x.termopary||[],inneUrzadzenia:x.inneUrzadzenia||[]}}
+function thermoData(){
+  if(!db.termopary) db.termopary=[];
+  return db.termopary;
+}
+function otherItems(){ if(!db.inneUrzadzenia) db.inneUrzadzenia=[]; return db.inneUrzadzenia; }
+function fileToDataURL(file){ return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);}); }
+function photoThumb(src,label){ return src?`<img class="photoThumb" src="${src}" alt="${esc(label||"Zdjęcie")}" onclick="viewPhoto(this.src)">`:""; }
+function viewPhoto(src){ dialog.innerHTML=`<div style="text-align:center"><img class="photoPreview" style="max-height:70vh" src="${src}"><div class="dialogactions"><button class="btn" onclick="closeModal()">Zamknij</button></div></div>`; modal.classList.add("open"); }
+function photoField(id,current,label){ return `<div class="field full"><label>${label}</label><input id="${id}" type="file" accept="image/*" onchange="photoSelected(this,'${id}Preview','${id}Status')"><div id="${id}Status" class="photoStatus">${current?'<span class="check">✓</span> Zdjęcie zapisane':'Brak zdjęcia'}</div><div id="${id}Preview">${current?`<img class="photoPreview" src="${current}">`:""}</div></div>`; }
+async function photoSelected(input,previewId,statusId){
+  const file=input.files?.[0]; if(!file)return;
+  const st=document.getElementById(statusId); const prev=document.getElementById(previewId);
+  st.innerHTML='<span class="spinner"></span> Wczytywanie zdjęcia…';
+  try{
+    const data=await fileToDataURL(file);
+    prev.innerHTML=`<img class="photoPreview" src="${data}">`;
+    st.innerHTML='<span class="check">✓</span> Zdjęcie gotowe do zapisania';
+  }catch(e){st.textContent='⚠ Nie udało się wczytać zdjęcia';}
+}
+function daysUntil(t){
+  const d=new Date(t+"T00:00:00"); const now=new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((d-now)/86400000);
+}
+function nextReplacement(t,last,life){
+  const n=new Date(last+"T00:00:00"); n.setDate(n.getDate()+Number(life||0));
+  return n.toISOString().slice(0,10);
+}
+function thermoStatus(days){
+  if(days<0) return ["🔴 Przekroczona żywotność","statusOver"];
+  if(days<=3) return ["🟡 Zbliża się wymiana","statusWarn"];
+  return ["🟢 OK","statusOk"];
+}
+function thermoIntervals(t){ const h=Array.isArray(t.wymiany)?t.wymiany:[]; const dates=h.map(x=>x.data).filter(Boolean).sort(); const out=[]; for(let i=1;i<dates.length;i++){const a=new Date(dates[i-1]+"T00:00:00"),b=new Date(dates[i]+"T00:00:00"); const d=Math.round((b-a)/86400000); if(d>0) out.push(d);} return out; }
+function thermoAverageLife(t){ const a=thermoIntervals(t); return a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):Number(t.zywotnosc||0); }
+function renderThermos(){
+  const q=(thermoSearch?.value||"").trim().toLowerCase(); const arr=thermoData().filter(t=>!q||t.symbol.toLowerCase().includes(q)||t.lokalizacja.toLowerCase().includes(q));
+  if(!arr.length){thermos.innerHTML='<div class="empty">Brak termopar dla podanego wyszukiwania.</div>';return}
+  thermos.innerHTML=arr.map(t=>{const life=thermoAverageLife(t),next=nextReplacement(t.symbol,t.ostatniaWymiana,life),days=daysUntil(next),st=thermoStatus(days),h=Array.isArray(t.wymiany)?t.wymiany:[];return `<article class="card"><div class="top"><div><div class="symbol">${esc(t.symbol)}</div><div class="name">${esc(t.nazwa)}</div></div>${photoThumb(t.zdjecie,t.nazwa)}<span class="tag termStatus ${st[1]}">${st[0]}</span></div><div class="meta"><div><div class="label">Lokalizacja</div><div class="value">${esc(t.lokalizacja)}</div></div><div><div class="label">Ostatnia wymiana</div><div class="value">${esc(t.ostatniaWymiana)}</div></div><div><div class="label">Żywotność</div><div class="value">${life} dni ${h.length>1?'(średnia)':'(ręcznie)'}</div></div><div><div class="label">Następna wymiana</div><div class="value">${esc(next)} (${days>=0?days+" dni":"termin minął"})</div></div></div>${h.length?`<div class="history"><div class="label">Historia wymian</div>${h.slice().sort((a,b)=>b.data.localeCompare(a.data)).map(x=>`<div class="historyItem">${esc(x.data)}</div>`).join("")}</div>`:""}${auditText(t)}<div class="cardactions"><button class="btn adminonly" onclick="openThermo('${esc(t.id)}')">✏ Edytuj</button><button class="btn danger adminonly" onclick="deleteThermo('${esc(t.id)}')">🗑 Usuń</button></div></article>`}).join("");
+}
+function openThermo(id=""){ if(!requireAdmin())return; const x=thermoData().find(a=>a.id===id)||{id:"",symbol:"",nazwa:"",lokalizacja:"",ostatniaWymiana:new Date().toISOString().slice(0,10),zywotnosc:90,wymiany:[],zdjecie:""}; dialog.innerHTML=`<h2>${id?"Edytuj termoparę":"Dodaj termoparę"}</h2><div class="formgrid"><div class="field"><label>Symbol *</label><input id="tSymbol" value="${esc(x.symbol)}"></div><div class="field"><label>Nazwa</label><input id="tName" value="${esc(x.nazwa)}"></div><div class="field full"><label>Lokalizacja *</label><input id="tLoc" value="${esc(x.lokalizacja)}"></div><div class="field"><label>Ostatnia wymiana *</label><input id="tLast" type="date" value="${esc(x.ostatniaWymiana)}"></div><div class="field"><label>Żywotność początkowa (dni) *</label><input id="tLife" type="number" min="1" value="${esc(x.zywotnosc)}"></div>${photoField("tPhoto",x.zdjecie,"Zdjęcie termopary / miejsca")}</div><div class="history"><div class="label">Historia wymian</div><div class="hint">Pierwsza żywotność jest ręczna. Po dodaniu co najmniej dwóch kolejnych dat aplikacja liczy średni czas między wymianami.</div><div class="searchrow"><input id="tNewExchange" type="date"><button class="btn" onclick="addThermoExchange('${esc(id)}')">＋ Dodaj wymianę</button></div><div id="tHistoryList">${(x.wymiany||[]).slice().sort((a,b)=>b.data.localeCompare(a.data)).map(h=>`<div class="historyItem"><span>${esc(h.data)}</span><button class="btn small danger" onclick="removeThermoExchange('${esc(id)}','${esc(h.data)}')">Usuń</button></div>`).join("")||"Brak wpisów"}</div></div><div class="dialogactions"><button class="btn" onclick="closeModal()">Anuluj</button><button class="btn primary" onclick="saveThermo('${esc(id)}')">Zapisz</button></div>`; modal.classList.add("open"); }
+function addThermoExchange(id){ if(!requireAdmin())return; if(!id){alert("Najpierw zapisz termoparę.");return} const d=tNewExchange.value;if(!d){alert("Wybierz datę.");return} const x=thermoData().find(a=>a.id===id); if(!x)return; if(!Array.isArray(x.wymiany))x.wymiany=[]; if(x.wymiany.some(h=>h.data===d)){alert("Ta data już jest w historii.");return} x.wymiany.push({data:d});saveDB();openThermo(id); }
+function removeThermoExchange(id,d){ if(!requireAdmin())return; const x=thermoData().find(a=>a.id===id);if(!x)return;x.wymiany=(x.wymiany||[]).filter(h=>h.data!==d);saveDB();openThermo(id); }
+async function saveThermo(id){ if(!requireAdmin())return; const symbol=tSymbol.value.trim(),loc=tLoc.value.trim(),last=tLast.value,life=Number(tLife.value);if(!symbol||!loc||!last||!life){alert("Uzupełnij wymagane pola.");return} const old=thermoData().find(a=>a.id===id); const file=document.getElementById("tPhoto")?.files?.[0]; const photo=file?await fileToDataURL(file):(old?.zdjecie||""); let x={id:id||uid("tp"),symbol,nazwa:tName.value.trim()||"Termopara",lokalizacja:loc,ostatniaWymiana:last,zywotnosc:life,wymiany:old?.wymiany||[],zdjecie:photo}; if(id){x.createdBy=old?.createdBy||"Nieznany";x.createdAt=old?.createdAt||nowISO();x=auditEdit(x);db.termopary[db.termopary.findIndex(a=>a.id===id)]=x}else db.termopary.push(auditNew(x));saveDB();closeModal();renderThermos();toast(id?"Termopara zmieniona":"Termopara dodana"); }
+function deleteThermo(id){if(!requireAdmin())return;const x=thermoData().find(a=>a.id===id);if(x&&confirm(`Usunąć termoparę ${x.symbol}?`)){db.termopary=db.termopary.filter(a=>a.id!==id);saveDB();renderThermos();toast("Termopara usunięta")}}
+
+function renderOthers(){const q=(otherSearch?.value||"").trim().toLowerCase();const arr=otherItems().filter(x=>!q||x.symbol.toLowerCase().includes(q)||x.nazwa.toLowerCase().includes(q)||x.lokalizacja.toLowerCase().includes(q));if(!arr.length){others.innerHTML='<div class="empty">Brak innych urządzeń.</div>';return}others.innerHTML=arr.map(x=>`<article class="card"><div class="top"><div><div class="symbol">${esc(x.symbol)}</div><div class="name">${esc(x.nazwa)}</div></div>${photoThumb(x.zdjecie,x.nazwa)}</div><div class="meta"><div><div class="label">Lokalizacja</div><div class="value">${esc(x.lokalizacja)}</div></div><div><div class="label">Opis</div><div class="value">${esc(x.opis)}</div></div></div>${auditText(x)}<div class="cardactions">${x.lat&&x.lon?`<a class="btn primary" target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(x.lat+","+x.lon)}">📍 Prowadź</a>`:""}<button class="btn adminonly" onclick="openOther('${esc(x.id)}')">✏ Edytuj</button><button class="btn danger adminonly" onclick="deleteOther('${esc(x.id)}')">🗑 Usuń</button></div></article>`).join("")}
+function openOther(id=""){if(!requireAdmin())return;const x=otherItems().find(a=>a.id===id)||{id:"",symbol:"",nazwa:"",lokalizacja:"",opis:"",lat:"",lon:"",zdjecie:""};dialog.innerHTML=`<h2>${id?"Edytuj inne urządzenie":"Dodaj inne urządzenie"}</h2><div class="formgrid"><div class="field"><label>Symbol *</label><input id="oSymbol" value="${esc(x.symbol)}"></div><div class="field"><label>Nazwa *</label><input id="oName" value="${esc(x.nazwa)}"></div><div class="field full"><label>Lokalizacja tekstowa *</label><input id="oLoc" value="${esc(x.lokalizacja)}"></div><div class="field full"><label>Opis</label><textarea id="oDesc" rows="3">${esc(x.opis)}</textarea></div><div class="field"><label>Szerokość GPS</label><input id="oLat" value="${esc(x.lat)}"></div><div class="field"><label>Długość GPS</label><input id="oLon" value="${esc(x.lon)}"></div>${photoField("oPhoto",x.zdjecie||"","Zdjęcie")}</div><div class="dialogactions"><button class="btn" onclick="closeModal()">Anuluj</button><button class="btn primary" onclick="saveOther('${esc(id)}')">Zapisz</button></div>`;modal.classList.add("open")}
+async function saveOther(id){if(!requireAdmin())return;const symbol=oSymbol.value.trim(),name=oName.value.trim(),loc=oLoc.value.trim();if(!symbol||!name||!loc){alert("Symbol, nazwa i lokalizacja są wymagane.");return}const old=otherItems().find(a=>a.id===id);const file=document.getElementById("oPhoto")?.files?.[0];const photo=file?await fileToDataURL(file):(old?.zdjecie||"");let x={id:id||uid("other"),symbol,nazwa:name,lokalizacja:loc,opis:oDesc.value.trim()||"—",lat:parseFloat(oLat.value)||0,lon:parseFloat(oLon.value)||0,zdjecie:photo};if(id){x.createdBy=old?.createdBy||"Nieznany";x.createdAt=old?.createdAt||nowISO();x=auditEdit(x);db.inneUrzadzenia[db.inneUrzadzenia.findIndex(a=>a.id===id)]=x}else db.inneUrzadzenia.push(auditNew(x));saveDB();closeModal();renderOthers();toast(id?"Zmieniono":"Dodano")}
+function deleteOther(id){if(!requireAdmin())return;const x=otherItems().find(a=>a.id===id);if(x&&confirm(`Usunąć ${x.symbol} — ${x.nazwa}?`)){db.inneUrzadzenia=db.inneUrzadzenia.filter(a=>a.id!==id);saveDB();renderOthers();toast("Usunięto")}}
+
+const DEFAULT_DB = {"rozdzielnie": [{"id": "T21", "nazwa": "Rozdzielnia Napędów T21", "lokalizacja": "Hala A, pomieszczenie elektryczne 01", "opis": "Rozdzielnia napędów części produkcyjnej.", "lat": 51.2468, "lon": 23.5001}, {"id": "T32", "nazwa": "Rozdzielnia Wentylacji T32", "lokalizacja": "Hala B, poziom +1, pomieszczenie 107", "opis": "Rozdzielnia układów wentylacji.", "lat": 51.248, "lon": 23.5022}, {"id": "T45", "nazwa": "Rozdzielnia Pomocnicza T45", "lokalizacja": "Hala C, parter", "opis": "Zasilanie urządzeń pomocniczych.", "lat": 51.2492, "lon": 23.5034}], "termopary": [{"id": "tp1", "symbol": "TP-001", "nazwa": "Termopara pieca 1", "lokalizacja": "Piec 1 — strefa grzania A", "ostatniaWymiana": "2026-08-01", "zywotnosc": 90, "wymiany": [], "zdjecie": ""}, {"id": "tp2", "symbol": "TP-002", "nazwa": "Termopara pieca 2", "lokalizacja": "Piec 2 — strefa grzania B", "ostatniaWymiana": "2026-08-20", "zywotnosc": 120, "wymiany": [], "zdjecie": ""}, {"id": "tp3", "symbol": "TP-003", "nazwa": "Termopara kanału", "lokalizacja": "Kanał spalin — punkt pomiarowy 3", "ostatniaWymiana": "2026-07-10", "zywotnosc": 180, "wymiany": [], "zdjecie": ""}, {"id": "tp4", "symbol": "TP-004", "nazwa": "Termopara demonstracyjna 4", "lokalizacja": "Piec 2 — punkt pomiarowy 4", "ostatniaWymiana": "2026-09-01", "zywotnosc": 120, "wymiany": [], "zdjecie": ""}, {"id": "tp5", "symbol": "TP-005", "nazwa": "Termopara demonstracyjna 5", "lokalizacja": "Piec 3 — punkt pomiarowy 5", "ostatniaWymiana": "2026-09-01", "zywotnosc": 135, "wymiany": [], "zdjecie": ""}, {"id": "tp6", "symbol": "TP-006", "nazwa": "Termopara demonstracyjna 6", "lokalizacja": "Piec 1 — punkt pomiarowy 6", "ostatniaWymiana": "2026-09-01", "zywotnosc": 150, "wymiany": [], "zdjecie": ""}, {"id": "tp7", "symbol": "TP-007", "nazwa": "Termopara demonstracyjna 7", "lokalizacja": "Piec 2 — punkt pomiarowy 7", "ostatniaWymiana": "2026-09-01", "zywotnosc": 165, "wymiany": [], "zdjecie": ""}, {"id": "tp8", "symbol": "TP-008", "nazwa": "Termopara demonstracyjna 8", "lokalizacja": "Piec 3 — punkt pomiarowy 8", "ostatniaWymiana": "2026-09-01", "zywotnosc": 180, "wymiany": [], "zdjecie": ""}], "urzadzenia": [{"id": "1", "symbol": "M-101", "nazwa": "Wentylator nawiewny", "rozdzielnia": "T21", "moc": "75 kW", "uwagi": "Falownik ABB ACS880", "zdjecie": ""}, {"id": "2", "symbol": "M-102", "nazwa": "Pompa obiegowa P-01", "rozdzielnia": "T21", "moc": "45 kW", "uwagi": "Rozruch z falownika", "zdjecie": ""}, {"id": "3", "symbol": "M-215", "nazwa": "Wentylator wyciągowy W-15", "rozdzielnia": "T32", "moc": "110 kW", "uwagi": "Napęd ABB ACS880", "zdjecie": ""}, {"id": "4", "symbol": "M-216", "nazwa": "Wentylator wyciągowy W-16", "rozdzielnia": "T32", "moc": "110 kW", "uwagi": "Rezerwa technologiczna", "zdjecie": ""}, {"id": "5", "symbol": "P-301", "nazwa": "Pompa chłodzenia", "rozdzielnia": "T21", "moc": "30 kW", "uwagi": "Sterowanie automatyczne", "zdjecie": ""}, {"id": "6", "symbol": "Q-001", "nazwa": "Wyłącznik zasilania hali", "rozdzielnia": "T45", "moc": "—", "uwagi": "Pole główne", "zdjecie": ""}, {"id": "7", "symbol": "T-010", "nazwa": "Transformator pomocniczy", "rozdzielnia": "T45", "moc": "250 kVA", "uwagi": "400/230 V", "zdjecie": ""}, {"id": "8", "symbol": "M-401", "nazwa": "Sprężarka", "rozdzielnia": "T45", "moc": "160 kW", "uwagi": "Sterowanie lokalne", "zdjecie": ""}, {"id": "9", "symbol": "M-109", "nazwa": "Wentylator wyciągowy", "rozdzielnia": "T21", "moc": "25 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "10", "symbol": "M-110", "nazwa": "Napęd przenośnika", "rozdzielnia": "T32", "moc": "35 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "11", "symbol": "M-111", "nazwa": "Pompa chłodząca", "rozdzielnia": "T45", "moc": "45 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "12", "symbol": "M-112", "nazwa": "Pompa technologiczna", "rozdzielnia": "T21", "moc": "55 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "13", "symbol": "M-113", "nazwa": "Wentylator wyciągowy", "rozdzielnia": "T32", "moc": "65 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "14", "symbol": "M-114", "nazwa": "Napęd przenośnika", "rozdzielnia": "T45", "moc": "75 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "15", "symbol": "M-115", "nazwa": "Pompa chłodząca", "rozdzielnia": "T21", "moc": "85 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "16", "symbol": "M-116", "nazwa": "Pompa technologiczna", "rozdzielnia": "T32", "moc": "15 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "17", "symbol": "M-117", "nazwa": "Wentylator wyciągowy", "rozdzielnia": "T45", "moc": "25 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "18", "symbol": "M-118", "nazwa": "Napęd przenośnika", "rozdzielnia": "T21", "moc": "35 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "19", "symbol": "M-119", "nazwa": "Pompa chłodząca", "rozdzielnia": "T32", "moc": "45 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}, {"id": "20", "symbol": "M-120", "nazwa": "Pompa technologiczna", "rozdzielnia": "T45", "moc": "55 kW", "uwagi": "Przykładowe dane demonstracyjne", "zdjecie": ""}], "inneUrzadzenia": [{"id": "in1", "symbol": "IN-001", "nazwa": "Czujnik poziomu zbiornika", "lokalizacja": "Za halą B, zbiornik technologiczny nr 2", "opis": "Nietypowy punkt kontrolny.", "lat": 51.2475, "lon": 23.5015, "zdjecie": ""}, {"id": "in2", "symbol": "IN-002", "nazwa": "Wentylator dachowy", "lokalizacja": "Dach hali C, sekcja zachodnia", "opis": "Dostęp przez drabinę serwisową.", "lat": 51.2498, "lon": 23.5041, "zdjecie": ""}, {"id": "in3", "symbol": "IN-003", "nazwa": "Skrzynka pomiarowa", "lokalizacja": "Tunel technologiczny, ściana północna", "opis": "Przykładowe nietypowe urządzenie.", "lat": 51.2484, "lon": 23.5029, "zdjecie": ""}]};
+let db = null;
+let currentQuery = "";
+
+// V1.9.5: IndexedDB is the real local database. A legacy localStorage
+// database is imported once when present, so older 1.9.x data is not lost.
+const IDB_NAME = "katalog_urzadzen_v195";
+const IDB_STORE = "catalog";
+function openLocalDB(){
+  return new Promise((resolve,reject)=>{
+    if(!window.indexedDB) return reject(new Error("Ta przeglądarka nie udostępnia IndexedDB."));
+    const req=indexedDB.open(IDB_NAME,1);
+    req.onupgradeneeded=()=>{ const d=req.result; if(!d.objectStoreNames.contains(IDB_STORE)) d.createObjectStore(IDB_STORE); };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error||new Error("Nie można otworzyć lokalnej bazy."));
+  });
+}
+async function loadDB(){
+  const idb=await openLocalDB();
+  const saved=await new Promise((resolve,reject)=>{
+    const r=idb.transaction(IDB_STORE,"readonly").objectStore(IDB_STORE).get("db");
+    r.onsuccess=()=>resolve(r.result||null); r.onerror=()=>reject(r.error);
+  });
+  if(saved){ idb.close(); return saved; }
+  // One-time migration from the previous 1.9.x localStorage implementation.
+  let legacy=null;
+  try{ const x=localStorage.getItem("katalogDB_v7fix"); if(x) legacy=JSON.parse(x); }catch(e){}
+  const initial=legacy || JSON.parse(JSON.stringify(DEFAULT_DB));
+  await new Promise((resolve,reject)=>{
+    const r=idb.transaction(IDB_STORE,"readwrite").objectStore(IDB_STORE).put(initial,"db");
+    r.onsuccess=resolve; r.onerror=()=>reject(r.error);
+  });
+  try{ localStorage.removeItem("katalogDB_v7fix"); }catch(e){}
+  idb.close();
+  return initial;
+}
+let selectedBoard = "";
+
+async function saveDB(){
+  if(!db) return;
+  try{
+    const idb=await openLocalDB();
+    await new Promise((resolve,reject)=>{
+      const r=idb.transaction(IDB_STORE,"readwrite").objectStore(IDB_STORE).put(db,"db");
+      r.onsuccess=resolve; r.onerror=()=>reject(r.error);
+    });
+    idb.close();
+  }catch(e){
+    console.error("Błąd zapisu IndexedDB",e);
+    toast("⚠ Nie udało się zapisać bazy lokalnej");
+  }
+}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function board(id){return db.rozdzielnie.find(x=>x.id===id)}
+function maps(r){return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(r.lat+','+r.lon)}`}
+
+function populateBoards(){
+  const old=selectedBoard;
+  boardFilter.innerHTML='<option value="">Wszystkie rozdzielnie</option>'+
+    db.rozdzielnie.map(r=>`<option value="${esc(r.id)}">${esc(r.id)} — ${esc(r.nazwa)}</option>`).join("");
+  boardFilter.value=db.rozdzielnie.some(r=>r.id===old)?old:"";
+  selectedBoard=boardFilter.value;
+}
+
+function getFiltered(){
+  const q=currentQuery.toLowerCase().trim();
+  let items=db.urzadzenia;
+
+  if(selectedBoard) items=items.filter(x=>x.rozdzielnia===selectedBoard);
+
+  if(q){
+    // Exact symbol match has priority and returns ONLY that one record.
+    const exact=items.filter(x=>x.symbol.toLowerCase()===q);
+    if(exact.length) return exact;
+
+    // Otherwise search symbol and name.
+    return items.filter(x=>
+      x.symbol.toLowerCase().includes(q) ||
+      x.nazwa.toLowerCase().includes(q)
+    );
+  }
+  return items;
+}
+
+function render(){
+  populateBoards();
+  const items=getFiltered();
+
+  count.textContent=`Wyniki: ${items.length}`;
+  total.textContent=`W bazie: ${db.urzadzenia.length} urządzeń`;
+
+  if(selectedBoard){
+    const r=board(selectedBoard);
+    selectionInfo.innerHTML=`<div class="card selected">
+      <div class="selectedTitle">Wybrana rozdzielnia</div>
+      <div class="boardHead">
+        <div><div class="boardName">${esc(r?.id)} — ${esc(r?.nazwa)}</div><div class="boardLoc">📍 ${esc(r?.lokalizacja)}</div></div>
+        <div class="actions">
+          <button class="btn small" onclick="openBoard('${esc(r.id)}')">Otwórz kartę rozdzielni</button>
+          ${r?`<a class="btn primary small" target="_blank" href="${maps(r)}">📍 Google Maps</a>`:""}
+        </div>
+      </div>
+    </div>`;
+  }else selectionInfo.innerHTML="";
+
+  results.innerHTML=items.length?items.map(deviceCard).join(""):`<div class="empty">${currentQuery?"Nie znaleziono urządzenia o podanym symbolu/nazwie.":"Brak urządzeń dla wybranych filtrów."}</div>`;
+  renderBoards();
+}
+
+function deviceCard(x){
+  const r=board(x.rozdzielnia);
+  return `<article class="card">
+    <div class="top"><div><div class="symbol">${esc(x.symbol)}</div><div class="name">${esc(x.nazwa)}</div></div>${photoThumb(x.zdjecie,x.nazwa)}</div>
+    <div class="meta">
+      <div><div class="label">Rozdzielnia</div>
+        <div class="value">${r?`<button class="btn small" onclick="viewBoard('${esc(r.id)}')">${esc(r.id)}</button>`:"Brak przypisania"}</div>
+      </div>
+      <div><div class="label">Moc / parametr</div><div class="value">${esc(x.moc)}</div></div>
+      <div><div class="label">Uwagi</div><div class="value">${esc(x.uwagi)}</div></div>
+    </div>
+    ${auditText(x)}<div class="cardactions">
+      <button class="btn adminonly" onclick="openDevice('${esc(x.id)}')">✏ Edytuj</button>
+      <button class="btn danger adminonly" onclick="deleteDevice('${esc(x.id)}')">🗑 Usuń</button>
+    </div>
+  </article>`;
+}
+
+function renderBoards(){
+  boards.innerHTML=db.rozdzielnie.map(r=>`
+    <article class="card ${selectedBoard===r.id?"selected":""}">
+      <div class="boardHead">
+        <div>
+          <div class="boardName">${esc(r.id)}</div>
+          <div class="name">${esc(r.nazwa)}</div>
+          <div class="boardLoc">📍 ${esc(r.lokalizacja)}</div>
+        </div>
+        ${selectedBoard===r.id?'<span class="tag">WYBRANA</span>':""}
+      </div>
+      ${auditText(r)}<div class="cardactions">
+        <button class="btn primary" onclick="selectBoard('${esc(r.id)}')">⚡ Pokaż urządzenia</button>
+        <a class="btn" target="_blank" href="${maps(r)}">📍 Google Maps</a>
+        <button class="btn adminonly" onclick="openBoard('${esc(r.id)}')">✏ Edytuj</button>
+        <button class="btn danger adminonly" onclick="deleteBoard('${esc(r.id)}')">🗑 Usuń</button>
+      </div>
+    </article>`).join("");
+}
+
+function selectBoard(id){
+  selectedBoard=id;
+  boardFilter.value=id;
+  currentQuery="";
+  search.value="";
+  render();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+boardFilter.addEventListener("change",()=>{
+  selectedBoard=boardFilter.value;
+  currentQuery="";
+  search.value="";
+  render();
+});
+search.addEventListener("keydown",e=>{if(e.key==="Enter")doSearch()});
+function doSearch(){currentQuery=search.value.trim();render()}
+function clearSearch(){currentQuery="";search.value="";render()}
+
+function closeModal(){modal.classList.remove("open")}
+
+function openDevice(id=""){ if(!requireAdmin()) return;
+  const x=db.urzadzenia.find(a=>a.id===id)||{
+    id:"",symbol:"",nazwa:"",rozdzielnia:db.rozdzielnie[0]?.id||"",moc:"",uwagi:"",zdjecie:""
+  };
+  dialog.innerHTML=`<h2>${id?"Edytuj urządzenie":"Dodaj urządzenie"}</h2>
+  <div class="formgrid">
+    <div class="field"><label>Symbol *</label><input id="fSymbol" value="${esc(x.symbol)}"></div>
+    <div class="field"><label>Nazwa *</label><input id="fName" value="${esc(x.nazwa)}"></div>
+    <div class="field"><label>Rozdzielnia</label>
+      <select id="fBoard">${db.rozdzielnie.map(r=>`<option value="${esc(r.id)}" ${r.id===x.rozdzielnia?"selected":""}>${esc(r.id)} — ${esc(r.nazwa)}</option>`).join("")}</select>
+    </div>
+    <div class="field"><label>Moc / parametr</label><input id="fPower" value="${esc(x.moc)}"></div>
+    <div class="field full"><label>Uwagi</label><textarea id="fNotes" rows="3">${esc(x.uwagi)}</textarea></div>
+    ${photoField("dPhoto",x.zdjecie||"","Zdjęcie urządzenia")}
+  </div>
+  <div class="dialogactions"><button class="btn" onclick="closeModal()">Anuluj</button><button class="btn primary" onclick="saveDevice('${esc(id)}')">Zapisz</button></div>`;
+  modal.classList.add("open");
+}
+
+async function saveDevice(id){ if(!requireAdmin()) return;
+  const symbol=fSymbol.value.trim(),name=fName.value.trim();
+  if(!symbol||!name){alert("Symbol i nazwa są wymagane.");return}
+  // Celowo nie sprawdzamy unikalności symbolu. Ten sam symbol może wystąpić w kilku miejscach.
+  const old=db.urzadzenia.find(a=>a.id===id);
+  const file=document.getElementById("dPhoto")?.files?.[0]; const photo=file?await fileToDataURL(file):(old?.zdjecie||""); let x={id:id||uid("dev"),symbol,nazwa:name,rozdzielnia:fBoard.value,moc:fPower.value.trim()||"—",uwagi:fNotes.value.trim()||"—",zdjecie:photo};
+  if(id){x.createdBy=old?.createdBy||"Nieznany";x.createdAt=old?.createdAt||nowISO();x=auditEdit(x);const i=db.urzadzenia.findIndex(a=>a.id===id);db.urzadzenia[i]=x}else db.urzadzenia.push(auditNew(x));
+  saveDB();closeModal();render();toast(id?"Urządzenie zmienione":"Urządzenie dodane");
+}
+
+function deleteDevice(id){ if(!requireAdmin()) return;
+  const x=db.urzadzenia.find(a=>a.id===id);
+  if(x&&confirm(`Usunąć urządzenie ${x.symbol} — ${x.nazwa}?`)){
+    db.urzadzenia=db.urzadzenia.filter(a=>a.id!==id);
+    saveDB();render();toast("Urządzenie usunięte");
+  }
+}
+
+function viewBoard(id=""){
+  const x=db.rozdzielnie.find(a=>a.id===id); if(!x)return;
+  const devices=db.urzadzenia.filter(d=>d.rozdzielnia===x.id);
+  dialog.innerHTML=`<h2>Rozdzielnia ${esc(x.id)}</h2>
+  <div class="formgrid">
+    <div class="field"><label>Nazwa</label><div class="value">${esc(x.nazwa)}</div></div>
+    <div class="field"><label>Lokalizacja</label><div class="value">${esc(x.lokalizacja)}</div></div>
+    <div class="field full"><label>Opis</label><div class="value">${esc(x.opis)}</div></div>
+  </div>
+  <div class="boardDevices"><h3>Urządzenia na tej rozdzielni</h3>
+    ${devices.length?devices.map(d=>`<div class="miniDevice"><button class="linkbtn" onclick="closeModal();setTimeout(()=>viewDevice('${esc(d.id)}'),0)"><b>${esc(d.symbol)}</b><br><span>${esc(d.nazwa)}</span></button></div>`).join(""):'<div class="empty">Brak urządzeń przypisanych do tej rozdzielni.</div>'}
+  </div>
+  <div class="dialogactions">
+    ${x.lat&&x.lon?`<a class="btn primary" target="_blank" href="${maps(x)}">📍 Prowadź do rozdzielni</a>`:""}
+    ${isAdmin?`<button class="btn" onclick="closeModal();openBoard('${esc(x.id)}')">✏ Edytuj</button>`:""}
+    <button class="btn" onclick="closeModal()">Zamknij</button>
+  </div>`;
+  modal.classList.add("open");
+}
+function viewDevice(id){
+  const x=db.urzadzenia.find(a=>a.id===id); if(!x)return;
+  const r=board(x.rozdzielnia);
+  dialog.innerHTML=`<h2>${esc(x.symbol)} — ${esc(x.nazwa)}</h2>
+    ${x.zdjecie?`<div style="text-align:center"><img class="photoPreview" src="${x.zdjecie}" alt="${esc(x.nazwa)}"></div>`:""}
+    <div class="formgrid">
+      <div class="field"><label>Rozdzielnia</label><div class="value">${r?`<button class="btn small" onclick="viewBoard('${esc(r.id)}')">${esc(r.id)}</button>`:"Brak przypisania"}</div></div>
+      <div class="field"><label>Moc / parametr</label><div class="value">${esc(x.moc)}</div></div>
+      <div class="field full"><label>Uwagi</label><div class="value">${esc(x.uwagi)}</div></div>
+    </div>
+    <div class="dialogactions"><button class="btn" onclick="closeModal()">Zamknij</button></div>`;
+  modal.classList.add("open");
+}
+
+function openBoard(id=""){ if(!requireAdmin()) return;
+  const x=db.rozdzielnie.find(a=>a.id===id)||{id:"",nazwa:"",lokalizacja:"",opis:"",lat:"",lon:""};
+  const devices=db.urzadzenia.filter(d=>d.rozdzielnia===x.id);
+  dialog.innerHTML=`<h2>${id?"Karta / edycja rozdzielni":"Dodaj rozdzielnię"}</h2>
+  <div class="formgrid">
+    <div class="field"><label>Symbol *</label><input id="bId" value="${esc(x.id)}" ${id?"readonly":""}></div>
+    <div class="field"><label>Nazwa *</label><input id="bName" value="${esc(x.nazwa)}"></div>
+    <div class="field full"><label>Lokalizacja</label><input id="bLoc" value="${esc(x.lokalizacja)}"></div>
+    <div class="field full"><label>Opis</label><textarea id="bDesc" rows="2">${esc(x.opis)}</textarea></div>
+    <div class="field"><label>Szerokość GPS</label><input id="bLat" value="${esc(x.lat)}" placeholder="np. 51.2468"></div>
+    <div class="field"><label>Długość GPS</label><input id="bLon" value="${esc(x.lon)}" placeholder="np. 23.5001"></div>
+  </div>
+  ${id?`<div class="boardDevices"><h3>Urządzenia przypisane do ${esc(x.id)}</h3>
+    ${devices.length?devices.map(d=>`<div class="miniDevice"><div><b>${esc(d.symbol)}</b><br><span>${esc(d.nazwa)}</span></div><button class="btn small" onclick="closeModal();openDevice('${esc(d.id)}')">✏</button></div>`).join(""):'<div class="empty">Brak urządzeń przypisanych do tej rozdzielni.</div>'}
+  </div>`:""}
+  <div class="dialogactions">
+    <button class="btn" onclick="closeModal()">Zamknij</button>
+    <button class="btn primary" onclick="saveBoard('${esc(id)}')">Zapisz</button>
+  </div>`;
+  modal.classList.add("open");
+}
+
+function saveBoard(id){ if(!requireAdmin()) return;
+  const rid=bId.value.trim(),name=bName.value.trim();
+  if(!rid||!name){alert("Symbol i nazwa rozdzielni są wymagane.");return}
+  if(!id&&db.rozdzielnie.some(r=>r.id.toLowerCase()===rid.toLowerCase())){alert("Taka rozdzielnia już istnieje.");return}
+  let x={id:rid,nazwa:name,lokalizacja:bLoc.value.trim()||"—",opis:bDesc.value.trim()||"—",lat:parseFloat(bLat.value)||0,lon:parseFloat(bLon.value)||0};
+  const old=db.rozdzielnie.find(r=>r.id===id);
+  if(id){x.createdBy=old?.createdBy||"Nieznany";x.createdAt=old?.createdAt||nowISO();x=auditEdit(x);const i=db.rozdzielnie.findIndex(r=>r.id===id);db.rozdzielnie[i]=x}else db.rozdzielnie.push(auditNew(x));
+  saveDB();closeModal();render();toast(id?"Rozdzielnia zmieniona":"Rozdzielnia dodana");
+}
+
+function deleteBoard(id){ if(!requireAdmin()) return;
+  const n=db.urzadzenia.filter(x=>x.rozdzielnia===id).length;
+  if(n){alert(`Nie można usunąć ${id}, ponieważ są do niej przypisane urządzenia. Najpierw przenieś urządzenia.`);return}
+  if(confirm(`Usunąć rozdzielnię ${id}?`)){
+    db.rozdzielnie=db.rozdzielnie.filter(r=>r.id!==id);
+    saveDB();render();toast("Rozdzielnia usunięta");
+  }
+}
+
+function exportDB(){ if(!requireAdmin()) return;
+  migrateAudit();
+  const payload={format:"KATALOG_SYNC_V8",exportedAt:nowISO(),exportedBy:currentAdmin?ADMINS[currentAdmin].name:"Nieznany",version:8,db};
+  const blob=new Blob([JSON.stringify(payload)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`katalog_sync_${new Date().toISOString().slice(0,10)}.katalog.json`;a.click();URL.revokeObjectURL(a.href);toast("Wyeksportowano pełną bazę ze zdjęciami");
+}
+function importDB(e){ if(!requireAdmin()) return;
+  const f=e.target.files[0];if(!f)return; const reader=new FileReader();
+  reader.onload=()=>{try{const raw=JSON.parse(reader.result);const incoming=normalizeImported(raw.db||raw);
+    const a=mergeArray(db.urzadzenia,incoming.urzadzenia,"id"), b=mergeArray(db.rozdzielnie,incoming.rozdzielnie,"id"), c=mergeArray(db.termopary,incoming.termopary,"id"), d=mergeArray(db.inneUrzadzenia,incoming.inneUrzadzenia,"id");
+    const total=a.added+b.added+c.added+d.added, updated=a.updated+b.updated+c.updated+d.updated;
+    if(!confirm(`Scalić bazę?\n\nNowe: ${total}\nZaktualizowane: ${updated}\n\nZdjęcia są częścią bazy i zostaną przeniesione razem z rekordami.`))return;
+    db.urzadzenia=a.items;db.rozdzielnie=b.items;db.termopary=c.items;db.inneUrzadzenia=d.items;saveDB();render();renderThermos();renderOthers();
+    alert(`Synchronizacja zakończona.\nNowe: ${total}\nZaktualizowane: ${updated}`);
+  }catch(_){alert("Nieprawidłowy plik synchronizacji.")} finally{e.target.value=""}}; reader.readAsText(f);
+}
+
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.style.display="block";setTimeout(()=>el.style.display="none",1800)}
+
+async function boot(){
+  try{
+    db=await loadDB();
+    migrateAudit();
+    updateAdminUI();
+    render();
+    renderThermos();
+    renderOthers();
+  }catch(e){
+    console.error(e);
+    document.body.innerHTML=`<div style="padding:24px;font-family:Arial,sans-serif"><h2>Nie udało się uruchomić katalogu</h2><p>${esc(e.message||e)}</p><p>Spróbuj otworzyć plik w aktualnym Chrome/Edge/Firefox.</p></div>`;
+  }
+}
+boot();
+
+</script>
+</body>
+</html>
