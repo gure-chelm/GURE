@@ -114,8 +114,10 @@
     min-height: 100vh;
   }
 
-  /* Zdjęcie nagłówkowe — responsywne, bez przycinania */
-  .hero { width: 100%; line-height: 0; position: relative; }
+  /* Zdjęcie nagłówkowe — responsywne, bez przycinania.
+     overflow-x: clip ucina łuki wyładowania dokładnie na krawędzi ekranu,
+     żeby w żadnej przeglądarce nie dało się przewinąć strony w bok. */
+  .hero { width: 100%; line-height: 0; position: relative; overflow-x: clip; }
   .hero img { width: 100%; height: auto; display: block; }
 
   /* Znak ostrzegawczy w prawym górnym rogu zdjęcia.
@@ -135,10 +137,61 @@
     transition: transform 0.15s ease;
     -webkit-tap-highlight-color: transparent;
   }
-  .hero .znak svg { width: 100%; height: auto; display: block; }
+  .hero .znak > svg { width: 100%; height: auto; display: block; }
+  .znak .tabliczka { position: relative; z-index: 1; }   /* znak zasłania nasady łuków */
   .hero .znak:active {
     transform: scale(0.93);
     filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) brightness(0.92);
+  }
+
+  /* --- Wyładowanie po dotknięciu znaku --- */
+  .znak .iskry {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 260%;
+    height: 260%;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+    pointer-events: none;
+  }
+  .znak .luk {
+    opacity: 0;
+    animation: luk-migot 540ms linear both;
+  }
+  .znak .luk polyline {
+    stroke-dasharray: 100;
+    animation: luk-rysuj 150ms ease-out both;
+  }
+  @keyframes luk-rysuj {
+    from { stroke-dashoffset: 100; }
+    to   { stroke-dashoffset: 0; }
+  }
+  /* nierówne migotanie — łuk elektryczny nigdy nie świeci równo */
+  @keyframes luk-migot {
+    0%   { opacity: 0; }
+    8%   { opacity: 1; }
+    26%  { opacity: 0.45; }
+    38%  { opacity: 1; }
+    55%  { opacity: 0.2; }
+    68%  { opacity: 0.85; }
+    84%  { opacity: 0.3; }
+    100% { opacity: 0; }
+  }
+  @keyframes znak-blysk {
+    0%   { filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+    10%  { filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 0 15px rgba(255,241,140,0.95)) brightness(1.2); }
+    38%  { filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 0 5px rgba(255,241,140,0.45)) brightness(1.02); }
+    56%  { filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)) drop-shadow(0 0 17px rgba(255,241,140,0.9)) brightness(1.18); }
+    100% { filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+  }
+  .znak.blysk { animation: znak-blysk 540ms ease-out; }
+
+  /* Szanujemy ustawienie „ogranicz animacje" w telefonie */
+  @media (prefers-reduced-motion: reduce) {
+    .znak.blysk { animation: none; }
+    .znak .iskry { display: none; }
+    .hero .znak { transition: none; }
   }
   .hero .znak:focus-visible {
     outline: 3px solid var(--yellow);
@@ -567,9 +620,10 @@
 
 <div class="hero">
 <button id="theme-toggle" class="znak" type="button" title="Przełącz na motyw jasny" aria-label="Przełącz na motyw jasny">
+  <svg class="iskry" viewBox="0 0 100 100" aria-hidden="true" focusable="false"></svg>
   <!-- Znak „Uwaga, napięcie elektryczne" (ISO 7010 W012) — kształty obrysowane
        z oryginalnej grafiki, dzięki czemu proporcje są takie jak na tabliczkach. -->
-  <svg viewBox="0 0 100 88" aria-hidden="true" focusable="false">
+  <svg class="tabliczka" viewBox="0 0 100 88" aria-hidden="true" focusable="false">
     <polygon points="50,6.70 5.72,83.45 94.28,83.45" fill="#0a0a0a" stroke="#0a0a0a" stroke-width="4.30" stroke-linejoin="round"/>
     <polygon points="50,14.34 12.34,79.63 87.66,79.63" fill="#edc844" stroke="#edc844" stroke-width="1.20" stroke-linejoin="round"/>
     <polygon points="53.5,30.6 46.4,30.8 39.1,57.9 50.9,51.6 48.7,70.1 46.2,68.2 48.2,78.8 53.6,69.8 50.8,70.9 57.2,45.3 44.5,52.3" fill="#0a0a0a"/>
@@ -761,7 +815,84 @@ function initMotyw() {
   document.getElementById('theme-toggle').addEventListener('click', () => {
     const terazJasny = document.documentElement.getAttribute('data-theme') === 'light';
     ustawMotyw(terazJasny ? 'dark' : 'light', true);
+    wyladowanie();
   });
+}
+
+/* ================================================================
+   EFEKT ŁUKU ELEKTRYCZNEGO PO DOTKNIĘCIU ZNAKU
+   Łuki są losowane przy każdym dotknięciu, więc efekt nigdy nie
+   wygląda dwa razy tak samo.
+================================================================ */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+let licznikIskier = null;
+
+function czyOgraniczonyRuch() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/* Pojedynczy łuk: łamana biegnąca od krawędzi znaku na zewnątrz,
+   z losowym rozchwianiem w poprzek — stąd charakterystyczny zygzak. */
+function losujLuk(kat) {
+  const kroki = 5;
+  const r0 = 16 + Math.random() * 3;          // start tuż przy krawędzi znaku
+  const r1 = r0 + 18 + Math.random() * 18;    // koniec wyraźnie poza nim
+  const punkty = [];
+  for (let i = 0; i <= kroki; i++) {
+    const t = i / kroki;
+    const r = r0 + (r1 - r0) * t;
+    const skrajny = (i === 0 || i === kroki) ? 0.25 : 1;   // końce trzymamy przy osi
+    const a = kat + (Math.random() - 0.5) * 0.55 * skrajny;
+    punkty.push(`${(50 + Math.cos(a) * r).toFixed(1)},${(50 + Math.sin(a) * r).toFixed(1)}`);
+  }
+  return punkty.join(' ');
+}
+
+/* Każdy łuk rysujemy trzema kreskami: szeroką poświatą, ciepłym
+   otokiem i cienkim białym rdzeniem — tak wygląda prawdziwe wyładowanie. */
+const WARSTWY_LUKU = [
+  ['rgba(125, 200, 255, 0.70)', 4.2],
+  ['rgba(255, 238, 150, 0.92)', 2.0],
+  ['#ffffff', 0.9]
+];
+
+function wyladowanie() {
+  const znak = document.getElementById('theme-toggle');
+  if (!znak) return;
+
+  // błysk samego znaku
+  znak.classList.remove('blysk');
+  void znak.offsetWidth;                // restart animacji przy szybkim klikaniu
+  if (!czyOgraniczonyRuch()) znak.classList.add('blysk');
+
+  const warstwa = znak.querySelector('.iskry');
+  if (!warstwa || czyOgraniczonyRuch()) return;
+  warstwa.textContent = '';
+
+  const ile = 4 + Math.floor(Math.random() * 2);
+  const katStartowy = Math.random() * Math.PI * 2;
+  for (let i = 0; i < ile; i++) {
+    const kat = katStartowy + (i / ile) * Math.PI * 2 + (Math.random() - 0.5) * 0.7;
+    const punkty = losujLuk(kat);
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('class', 'luk');
+    g.style.animationDelay = Math.round(Math.random() * 90) + 'ms';
+    for (const [kolor, szerokosc] of WARSTWY_LUKU) {
+      const linia = document.createElementNS(SVG_NS, 'polyline');
+      linia.setAttribute('points', punkty);
+      linia.setAttribute('fill', 'none');
+      linia.setAttribute('stroke', kolor);
+      linia.setAttribute('stroke-width', szerokosc);
+      linia.setAttribute('stroke-linecap', 'round');
+      linia.setAttribute('stroke-linejoin', 'round');
+      linia.setAttribute('pathLength', '100');
+      g.appendChild(linia);
+    }
+    warstwa.appendChild(g);
+  }
+
+  clearTimeout(licznikIskier);
+  licznikIskier = setTimeout(() => { warstwa.textContent = ''; }, 900);
 }
 
 /* ================================================================
