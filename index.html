@@ -624,8 +624,12 @@ function urzadzenieCardHtml(u) {
           <div class="value">${escapeHtml(rozdzielniaLabel)}</div>
         </div>
         <div class="meta-block">
-          <div class="label">Moc / parametr</div>
-          <div class="value">${escapeHtml(u.moc_parametr || '—')}</div>
+          <div class="label">Prąd znamionowy</div>
+          <div class="value">${u.prad_znamionowy !== null && u.prad_znamionowy !== undefined ? u.prad_znamionowy + ' A' : '—'}</div>
+        </div>
+        <div class="meta-block">
+          <div class="label">Napięcie</div>
+          <div class="value">${u.napiecie !== null && u.napiecie !== undefined ? u.napiecie + ' V' : '—'}</div>
         </div>
         ${u.uwagi ? `<div class="meta-block full"><div class="label">Uwagi</div><div class="value">${escapeHtml(u.uwagi)}</div></div>` : ''}
       </div>
@@ -667,7 +671,8 @@ function showUrzadzenieForm(id) {
         <label class="field"><span>Rozdzielnia</span>
           <select required name="rozdzielnia_id"><option value="">— wybierz —</option>${rozdzielnieOptions}</select>
         </label>
-        <label class="field"><span>Moc / parametr</span><input name="moc_parametr" value="${escapeHtml(existing?.moc_parametr || '')}" placeholder="np. 30 kW"></label>
+        <label class="field"><span>Prąd znamionowy (A)</span><input type="number" step="0.01" name="prad_znamionowy" value="${existing?.prad_znamionowy ?? ''}" placeholder="np. 12.5"></label>
+        <label class="field"><span>Napięcie (V)</span><input type="number" step="0.01" name="napiecie" value="${existing?.napiecie ?? ''}" placeholder="np. 400"></label>
         <label class="field"><span>Uwagi</span><textarea name="uwagi" rows="2">${escapeHtml(existing?.uwagi || '')}</textarea></label>
         <div class="btn-row">
           <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj urządzenie'}</button>
@@ -688,7 +693,8 @@ function showUrzadzenieForm(id) {
       symbol: fd.get('symbol').trim(),
       nazwa: fd.get('nazwa').trim(),
       rozdzielnia_id: fd.get('rozdzielnia_id'),
-      moc_parametr: fd.get('moc_parametr').trim() || null,
+      prad_znamionowy: fd.get('prad_znamionowy') ? Number(fd.get('prad_znamionowy')) : null,
+      napiecie: fd.get('napiecie') ? Number(fd.get('napiecie')) : null,
       uwagi: fd.get('uwagi').trim() || null,
     };
     if (id) {
