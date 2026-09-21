@@ -520,9 +520,14 @@ async function initSession() {
   renderSessionInfo();
 
   sb.auth.onAuthStateChange((_event, newSession) => {
+    const poprzedniUzytkownik = session?.user?.id || null;
+    const nowyUzytkownik = newSession?.user?.id || null;
     session = newSession;
     renderSessionInfo();
-    render(); // odśwież widok (pokaż/ukryj przyciski Edytuj/Usuń)
+    // Widok przerysowujemy TYLKO wtedy, gdy faktycznie zmienił się zalogowany
+    // użytkownik. Bez tego warunku każdy powrót na kartę przeglądarki
+    // (Supabase odświeża wtedy token) przeładowywał listę i przewijał ją na górę.
+    if (poprzedniUzytkownik !== nowyUzytkownik) render({ naGore: true });
   });
 }
 
@@ -542,7 +547,31 @@ async function logout() {
   await sb.auth.signOut();
   showAlert('Wylogowano.', 'info');
   currentTab = 'urzadzenia';
-  render();
+  render({ naGore: true });
+}
+
+/* ================================================================
+   POZYCJA PRZEWIJANIA
+   Przy każdym przerysowaniu listy podmieniana jest cała jej zawartość,
+   przez co strona "skakała" na początek. Poniższe funkcje zapamiętują
+   pozycję przed przerysowaniem i przywracają ją, gdy nowa lista jest gotowa.
+================================================================ */
+let pozycjaDoPrzywrocenia = 0;
+let pozycjaZapisana = false;
+
+function zapiszPozycje(naGore) {
+  if (pozycjaZapisana) return;     // nie nadpisuj pozycji zapisanej wyżej w cyklu
+  pozycjaZapisana = true;
+  pozycjaDoPrzywrocenia = naGore ? 0 : (window.scrollY || document.documentElement.scrollTop || 0);
+}
+
+function przywrocPozycje() {
+  const y = pozycjaDoPrzywrocenia;
+  pozycjaZapisana = false;
+  const ustaw = () => window.scrollTo(0, y);
+  ustaw();                            // od razu
+  requestAnimationFrame(ustaw);       // po przeliczeniu układu strony
+  setTimeout(ustaw, 120);             // po dociągnięciu miniatur zdjęć
 }
 
 /* ================================================================
@@ -554,8 +583,7 @@ function switchTab(tab, extra) {
   if (tab === 'urzadzenia' && extra && extra.rozdzielniaId) {
     urzadzeniaFilter.rozdzielniaId = extra.rozdzielniaId;
   }
-  render();
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  render({ naGore: true });
 }
 
 els.tabButtons.forEach(btn => {
@@ -571,9 +599,13 @@ function updateActiveTabStyles() {
 /* ================================================================
    RENDER GŁÓWNY — przełącza między sekcjami
 ================================================================ */
-async function render() {
+async function render(opcje = {}) {
+  zapiszPozycje(opcje.naGore === true);
   updateActiveTabStyles();
-  els.content.innerHTML = '<p class="empty-state">Ładowanie danych…</p>';
+  // Napis "Ładowanie danych…" podmieniamy tylko przy zmianie zakładki —
+  // przy odświeżaniu bieżącej listy stara treść zostaje do czasu,
+  // aż nowa będzie gotowa (brak migotania i skoku strony).
+  if (opcje.naGore === true) els.content.innerHTML = '<p class="empty-state">Ładowanie danych…</p>';
   try {
     if (currentTab === 'urzadzenia') await renderUrzadzenia();
     else if (currentTab === 'rozdzielnie') await renderRozdzielnie();
@@ -584,6 +616,7 @@ async function render() {
     console.error(err);
     els.content.innerHTML = `<div class="alert">Wystąpił błąd podczas wczytywania danych: ${escapeHtml(err.message || err)}</div>`;
   }
+  przywrocPozycje();
 }
 
 /* ================================================================
@@ -996,7 +1029,7 @@ function rozdzielniaCardHtml(r) {
       <div class="btn-row" style="margin-bottom:8px;">
         <button class="btn-secondary btn-show-devices" data-id="${r.id}">⚡ Pokaż urządzenia</button>
       </div>
-      ${r.google_maps_url ? `<a class="link" href="${escapeHtml(r.google_maps_url)}" target="_blank" rel="noopener"><button class="btn-ghost btn-block">📍 Google Maps</button></a>` : ''}
+      ${isLoggedIn() && r.google_maps_url ? `<a class="link" href="${escapeHtml(r.google_maps_url)}" target="_blank" rel="noopener"><button class="btn-ghost btn-block">📍 Google Maps</button></a>` : ''}
       ${isLoggedIn() ? `
         <div class="btn-row" style="margin-top:8px;">
           <button class="btn-secondary btn-edit">✏️ Edytuj</button>
@@ -1363,11 +1396,32 @@ async function renderAdmin() {
 }
 
 /* ================================================================
+   ZACHOWANIE POZYCJI PRZY ODŚWIEŻANIU POJEDYNCZEJ SEKCJI
+   Zapis urządzenia, rejestracja wymiany termopary itp. przeładowują
+   samą listę (z pominięciem render()). Poniżej "opakowujemy" te funkcje,
+   żeby również one wracały na to samo miejsce listy.
+================================================================ */
+function zachowajPozycje(fn) {
+  return async function (...args) {
+    zapiszPozycje(false);
+    try {
+      return await fn.apply(this, args);
+    } finally {
+      przywrocPozycje();
+    }
+  };
+}
+renderUrzadzenia = zachowajPozycje(renderUrzadzenia);
+renderRozdzielnie = zachowajPozycje(renderRozdzielnie);
+renderTermopary = zachowajPozycje(renderTermopary);
+renderInne = zachowajPozycje(renderInne);
+
+/* ================================================================
    START
 ================================================================ */
 (async function start() {
   await initSession();
-  render();
+  render({ naGore: true });
 })();
 </script>
 
