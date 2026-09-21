@@ -427,6 +427,22 @@ function daysBetween(a, b) {
   return Math.round((a - b) / (1000 * 60 * 60 * 24));
 }
 
+// Liczy średni odstęp (w dniach) między ostatnimi maks. 3 zarejestrowanymi
+// wymianami. Zwraca null, jeśli w historii są mniej niż 2 wymiany —
+// wtedy strona korzysta z ręcznie wpisanej wartości żywotności.
+function sredniaZywotnosc(history) {
+  const daty = history
+    .map(h => new Date(h.data_wymiany))
+    .sort((a, b) => a - b)
+    .slice(-3);
+  if (daty.length < 2) return null;
+  let suma = 0;
+  for (let i = 1; i < daty.length; i++) {
+    suma += daysBetween(daty[i], daty[i - 1]);
+  }
+  return Math.round(suma / (daty.length - 1));
+}
+
 function showAlert(message, type = 'error') {
   els.globalAlert.innerHTML = `<div class="alert ${type === 'info' ? 'info' : ''}">${escapeHtml(message)}</div>`;
   setTimeout(() => { els.globalAlert.innerHTML = ''; }, 5000);
@@ -846,7 +862,12 @@ async function renderTermopary() {
 }
 
 function termoparaCardHtml(t, history) {
-  const nextDate = addDays(t.ostatnia_wymiana, t.zywotnosc_dni);
+  const avgDays = sredniaZywotnosc(history);
+  const zywotnoscEfektywna = avgDays !== null ? avgDays : t.zywotnosc_dni;
+  const zywotnoscLabel = avgDays !== null
+    ? `${avgDays} dni (śr. z ostatnich wymian)`
+    : `${t.zywotnosc_dni} dni (ręcznie — brak wystarczającej historii)`;
+  const nextDate = addDays(t.ostatnia_wymiana, zywotnoscEfektywna);
   const daysLeft = daysBetween(nextDate, new Date());
   const overdue = daysLeft < 0;
   const statusLabel = overdue ? 'DO WYMIANY' : t.status;
@@ -862,13 +883,13 @@ function termoparaCardHtml(t, history) {
       <div class="meta-grid">
         <div class="meta-block full"><div class="label">Lokalizacja</div><div class="value">${escapeHtml(t.lokalizacja || '—')}</div></div>
         <div class="meta-block"><div class="label">Ostatnia wymiana</div><div class="value">${t.ostatnia_wymiana}</div></div>
-        <div class="meta-block"><div class="label">Żywotność</div><div class="value">${t.zywotnosc_dni} dni</div></div>
+        <div class="meta-block"><div class="label">Żywotność</div><div class="value">${zywotnoscLabel}</div></div>
         <div class="meta-block full"><div class="label">Następna wymiana</div><div class="value">${nextDate.toLocaleDateString('pl-PL')} (${daysLeft >= 0 ? daysLeft + ' dni' : 'zaległe ' + Math.abs(daysLeft) + ' dni'})</div></div>
       </div>
       ${historyLines ? `<div style="margin-bottom:10px;"><div class="label" style="font-size:10px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Historia wymian — ostatnie 3</div>${historyLines}</div>` : ''}
       <div class="footer-row"><span>Dodano: ${formatDateTime(t.created_at)}</span></div>
+      <button class="btn-primary btn-block btn-wymiana" data-id="${t.id}" style="margin-bottom:8px;">🔧 Wymiana termopary</button>
       ${isLoggedIn() ? `
-        <button class="btn-primary btn-block btn-wymiana" data-id="${t.id}" style="margin-bottom:8px;">🔧 Wymiana termopary</button>
         <div class="btn-row">
           <button class="btn-secondary btn-edit">✏️ Edytuj</button>
           <button class="btn-danger btn-delete">🗑️ Usuń</button>
@@ -902,7 +923,8 @@ function showTermoparaForm(id, allData) {
           </select>
         </label>
         <label class="field"><span>Ostatnia wymiana</span><input required type="date" name="ostatnia_wymiana" value="${existing?.ostatnia_wymiana || new Date().toISOString().slice(0,10)}"></label>
-        <label class="field"><span>Żywotność (dni)</span><input required type="number" min="1" name="zywotnosc_dni" value="${existing?.zywotnosc_dni || 90}"></label>
+        <label class="field"><span>Żywotność startowa (dni)</span><input required type="number" min="1" name="zywotnosc_dni" value="${existing?.zywotnosc_dni || 90}"></label>
+        <p style="font-size:12px;color:var(--text-dim);margin-top:-8px;">Używana tylko dopóki nie zarejestrowano co najmniej 2 wymian — potem strona liczy żywotność automatycznie jako średnią z ostatnich wymian.</p>
         <div class="btn-row">
           <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj termoparę'}</button>
           <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
