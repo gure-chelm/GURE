@@ -2,9 +2,22 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14171b">
 <title>Katalog urządzeń elektrycznych</title>
+
+<!-- Instalacja na ekranie głównym telefonu -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Katalog">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   /* Motyw ustawiamy przed narysowaniem strony, żeby przy jasnym motywie
      nie mrugnęło na moment ciemne tło. Domyślny motyw: ciemny. */
@@ -14,16 +27,13 @@
     document.documentElement.setAttribute('data-theme', zapisany === 'light' ? 'light' : 'dark');
   })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   /* ============================================================
      TOKENY DESIGNU
      Paleta inspirowana oznaczeniami "Uwaga! Wysokie napięcie":
      grafitowe tło (jak obudowa rozdzielnicy) + żółte pasy ostrzegawcze.
   ============================================================ */
+
   /* --- Motyw ciemny (domyślny) --- */
   :root {
     --bg: #14171b;
@@ -34,11 +44,10 @@
     --text-dim: #9aa3ab;
     --yellow: #ffc400;          /* wypełnienia: przyciski, pasy ostrzegawcze */
     --accent-text: #ffc400;     /* żółty jako tekst (symbole, nagłówek) */
-    --yellow-dim: #7a5f00;
     --on-yellow: #1a1400;       /* tekst na żółtym tle */
     --red: #e5484d;
     --green: #3ecf5a;
-    --hazard-dark: #14171b;     /* drugi kolor pasów ostrzegawczych */
+    --hazard-dark: #14171b;
     --hero-fade: rgba(20,23,27,0.38);
     --danger-bg: #4a1f21;
     --danger-text: #ffb4b6;
@@ -50,6 +59,8 @@
     --ok-text: #3ecf5a;
     --bad-bg: rgba(229,72,77,0.14);
     --bad-text: #ff8b8f;
+    --warn-bg: rgba(255,196,0,0.14);
+    --warn-text: #ffc400;
     --card-shadow: none;
     --radius: 10px;
   }
@@ -64,7 +75,6 @@
     --text-dim: #5c6771;
     --yellow: #ffc400;
     --accent-text: #8a6100;     /* ciemniejszy bursztyn — czytelny na bieli */
-    --yellow-dim: #d9a400;
     --on-yellow: #1a1400;
     --red: #d13b40;
     --green: #1a7f37;
@@ -80,6 +90,8 @@
     --ok-text: #1a7f37;
     --bad-bg: #fdecec;
     --bad-text: #a3231d;
+    --warn-bg: #fdf3d6;
+    --warn-text: #7a5600;
     --card-shadow: 0 1px 2px rgba(18,23,28,0.06);
   }
 
@@ -98,11 +110,22 @@
   }
 
   body {
-    padding-bottom: 84px; /* miejsce na dolny pasek nawigacji */
+    padding-bottom: 84px; /* miejsce na dolny pasek */
     min-height: 100vh;
   }
 
-  /* Pasek ostrzegawczy na samej górze — czysto dekoracyjny akcent */
+  /* Zdjęcie nagłówkowe — responsywne, bez przycinania */
+  .hero { width: 100%; line-height: 0; position: relative; }
+  .hero img { width: 100%; height: auto; display: block; }
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 75%, var(--hero-fade) 100%);
+    pointer-events: none;
+  }
+
+  /* Pasek ostrzegawczy */
   .hazard-strip {
     height: 6px;
     width: 100%;
@@ -113,25 +136,6 @@
     );
   }
 
-  /* Zdjęcie nagłówkowe — responsywne, bez przycinania (zachowuje proporcje) */
-  .hero {
-    width: 100%;
-    line-height: 0; /* usuwa domyślną przerwę pod obrazkiem inline */
-    position: relative;
-  }
-  .hero img {
-    width: 100%;
-    height: auto;   /* skalowanie z zachowaniem oryginalnych proporcji */
-    display: block;
-  }
-  .hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, transparent 75%, var(--hero-fade) 100%);
-    pointer-events: none;
-  }
-
   header.top {
     padding: 18px 16px 14px;
     border-bottom: 1px solid var(--border);
@@ -140,7 +144,6 @@
     gap: 12px;
   }
   header.top .top-text { flex: 1; min-width: 0; }
-
   header.top h1 {
     font-family: 'Bebas Neue', sans-serif;
     letter-spacing: 0.03em;
@@ -148,32 +151,31 @@
     margin: 0 0 2px;
     color: var(--accent-text);
   }
+  header.top p { margin: 0; font-size: 13px; color: var(--text-dim); }
 
-  header.top p {
-    margin: 0;
-    font-size: 13px;
-    color: var(--text-dim);
-  }
-
-  /* Przełącznik motywu jasny / ciemny */
   #theme-toggle {
     flex: none;
-    width: 44px;
-    height: 44px;
+    width: 44px; height: 44px;
     padding: 0;
-    font-size: 19px;
-    line-height: 1;
+    font-size: 19px; line-height: 1;
     border-radius: 50%;
     background: var(--surface-2);
     color: var(--text);
     border: 1px solid var(--border);
   }
 
-  main {
-    padding: 16px;
-    max-width: 720px;
-    margin: 0 auto;
+  /* Pasek trybu offline */
+  #offline-bar {
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
   }
+
+  main { padding: 16px; max-width: 720px; margin: 0 auto; }
 
   /* ---------- Pola formularzy ---------- */
   input, select, textarea {
@@ -183,18 +185,12 @@
     color: var(--text);
     border-radius: 8px;
     padding: 12px 14px;
-    font-size: 15px;
+    font-size: 16px;      /* 16px zapobiega automatycznemu zoomowi na iPhone */
     font-family: inherit;
   }
   input::placeholder, textarea::placeholder { color: var(--text-dim); }
-  input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--yellow);
-  }
-  label.field {
-    display: block;
-    margin-bottom: 12px;
-  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--yellow); }
+  label.field { display: block; margin-bottom: 12px; }
   label.field span {
     display: block;
     font-size: 12px;
@@ -216,7 +212,6 @@
     transition: filter 0.15s ease;
   }
   button:active { filter: brightness(0.88); }
-
   .btn-primary { background: var(--yellow); color: var(--on-yellow); width: 100%; }
   .btn-secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
   .btn-danger { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--red); }
@@ -225,146 +220,26 @@
   .btn-row { display: flex; gap: 8px; }
   .btn-row button { flex: 1; }
 
-  /* ---------- Karty ---------- */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--yellow);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 12px;
-    box-shadow: var(--card-shadow);
-  }
-  .card.termopara-bad { border-left-color: var(--red); }
-
-  .card .symbol {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 26px;
-    letter-spacing: 0.03em;
-    color: var(--accent-text);
-    line-height: 1;
-  }
-  .card .nazwa {
-    font-size: 15px;
-    color: var(--text);
-    margin: 4px 0 12px;
-  }
-
-  .meta-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 10px;
-  }
-  .meta-grid .full { grid-column: 1 / -1; }
-  .meta-block {
-    background: var(--surface-2);
-    border-radius: 8px;
-    padding: 8px 10px;
-  }
-  .meta-block .label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-dim);
-    margin-bottom: 3px;
-  }
-  .meta-block .value { font-size: 14px; font-weight: 600; }
-
-  /* ---------- Zdjęcia: widok na karcie ---------- */
-  .photo-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-  .photo-row img {
-    width: 76px;
-    height: 76px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    display: block;
-  }
-
-  /* ---------- Zdjęcia: edytor w formularzu ---------- */
-  .photo-picker { margin-bottom: 14px; }
-  .photo-thumbs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-  }
-  .photo-thumb {
-    position: relative;
-    width: 76px;
-    height: 76px;
-  }
-  .photo-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    display: block;
-  }
-  .photo-remove {
+  /* ---------- Wyszukiwarka ---------- */
+  .search-row { position: relative; margin-bottom: 12px; }
+  .search-row input { padding-right: 46px; }
+  #search-clear {
     position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 22px;
-    height: 22px;
+    right: 6px; top: 50%;
+    transform: translateY(-50%);
+    width: 34px; height: 34px;
     padding: 0;
     border-radius: 50%;
-    background: var(--red);
-    color: #fff;
-    font-size: 12px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .photo-add-label {
-    display: block;
-    text-align: center;
-    cursor: pointer;
-  }
-
-  .card .footer-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 11px;
+    background: transparent;
     color: var(--text-dim);
-    margin-top: 4px;
-    margin-bottom: 10px;
+    font-size: 17px;
+    border: none;
   }
 
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: var(--ok-bg);
-    color: var(--ok-text);
-  }
-  .status-pill.bad { background: var(--bad-bg); color: var(--bad-text); }
-  .status-pill .dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: currentColor;
-  }
-
-  /* ---------- Nawigacja górna (zakładki kategorii) ---------- */
-  .tab-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
+  /* ---------- Zakładki ---------- */
+  .tab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
   .tab-btn {
+    position: relative;
     background: var(--surface);
     box-shadow: var(--card-shadow);
     border: 1px solid var(--border);
@@ -378,13 +253,157 @@
     gap: 8px;
     justify-content: center;
   }
-  .tab-btn.active {
-    background: var(--yellow);
-    color: var(--on-yellow);
-    border-color: var(--yellow);
+  .tab-btn.active { background: var(--yellow); color: var(--on-yellow); border-color: var(--yellow); }
+  .tab-badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    min-width: 22px; height: 22px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: var(--red);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg);
+  }
+  .tab-badge.soon { background: var(--yellow); color: var(--on-yellow); }
+
+  /* ---------- Karty ---------- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--yellow);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--card-shadow);
+  }
+  .card.termopara-bad { border-left-color: var(--red); }
+  .card.termopara-soon { border-left-color: var(--yellow); }
+  .card .symbol {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 0.03em;
+    color: var(--accent-text);
+    line-height: 1;
+  }
+  .card .nazwa { font-size: 15px; color: var(--text); margin: 4px 0 12px; }
+
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .meta-grid .full { grid-column: 1 / -1; }
+  .meta-block { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+  .meta-block .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+  .meta-block .value { font-size: 14px; font-weight: 600; }
+
+  .card .footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    margin-bottom: 10px;
   }
 
-  /* ---------- Dolny pasek (stan sesji / skrót do panelu) ---------- */
+  /* ---------- Zdjęcia na karcie ---------- */
+  .photo-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .photo-row img {
+    width: 76px; height: 76px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: block;
+    cursor: zoom-in;
+  }
+
+  /* ---------- Edytor zdjęć w formularzu ---------- */
+  .photo-picker { margin-bottom: 14px; }
+  .photo-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .photo-thumb { position: relative; width: 76px; height: 76px; }
+  .photo-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+  .photo-remove {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 22px; height: 22px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--red);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo-add-label { display: block; text-align: center; cursor: pointer; }
+
+  /* ---------- Podgląd zdjęcia na wierzchu strony ---------- */
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,10,12,0.94);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+  #lightbox .lb-close {
+    position: absolute;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    font-size: 20px;
+    padding: 0;
+  }
+  #lightbox .lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px; height: 60px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    font-size: 24px;
+    padding: 0;
+  }
+  #lightbox .lb-prev { left: 10px; }
+  #lightbox .lb-next { right: 10px; }
+  #lightbox .lb-count {
+    position: absolute;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: 0; right: 0;
+    text-align: center;
+    color: rgba(255,255,255,0.75);
+    font-size: 13px;
+  }
+  body.lb-open { overflow: hidden; }
+
+  /* ---------- Dolny pasek ---------- */
   .bottom-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
@@ -394,18 +413,19 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     font-size: 12px;
     color: var(--text-dim);
     z-index: 10;
   }
   .bottom-bar b { color: var(--text); }
-  .bottom-bar button { padding: 8px 12px; font-size: 13px; }
+  .bottom-bar button { padding: 8px 12px; font-size: 13px; flex: none; }
 
   h2.section-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 22px;
     letter-spacing: 0.02em;
-    margin: 0 0 14px;
+    margin: 0;
   }
 
   .row-between {
@@ -416,22 +436,49 @@
     gap: 10px;
   }
 
-  .empty-state {
-    text-align: center;
+  /* ---------- Sortowanie ---------- */
+  .sort-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .sort-row label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--text-dim);
-    padding: 40px 20px;
-    font-size: 14px;
+    white-space: nowrap;
+  }
+  .sort-row select { padding: 9px 12px; font-size: 14px; }
+
+  .empty-state { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 14px; }
+
+  .stat-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat-chips span {
+    background: var(--surface-2);
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
   }
 
-  .badge {
-    display: inline-block;
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 13px;
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
     font-weight: 700;
     padding: 4px 10px;
-    border-radius: 6px;
+    border-radius: 999px;
+    background: var(--ok-bg);
+    color: var(--ok-text);
+    white-space: nowrap;
   }
+  .status-pill.bad { background: var(--bad-bg); color: var(--bad-text); }
+  .status-pill.soon { background: var(--warn-bg); color: var(--warn-text); }
+  .status-pill.count { background: var(--surface-2); color: var(--text-dim); }
+  .status-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
   .alert {
     background: var(--alert-bg);
@@ -442,20 +489,7 @@
     font-size: 13px;
     margin-bottom: 14px;
   }
-  .alert.info {
-    background: var(--info-bg);
-    border-color: var(--green);
-    color: var(--info-text);
-  }
-
-  .stat-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-  .stat-chips span {
-    background: var(--surface-2);
-    color: var(--text-dim);
-    font-size: 12px;
-    padding: 6px 10px;
-    border-radius: 999px;
-  }
+  .alert.info { background: var(--info-bg); border-color: var(--green); color: var(--info-text); }
 
   .admin-section {
     background: var(--surface);
@@ -471,14 +505,19 @@
     letter-spacing: 0.02em;
     margin: 0 0 4px;
   }
-  .admin-section p.hint {
+  .admin-section p.hint { color: var(--text-dim); font-size: 13px; margin: 0 0 14px; }
+
+  /* ---------- Wyniki wyszukiwania ---------- */
+  .result-group { margin-bottom: 8px; }
+  .result-group > h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 19px;
+    letter-spacing: 0.02em;
+    margin: 18px 0 10px;
     color: var(--text-dim);
-    font-size: 13px;
-    margin: 0 0 14px;
   }
 
   .hidden { display: none !important; }
-
   a.link { color: var(--accent-text); text-decoration: none; }
 </style>
 </head>
@@ -494,19 +533,24 @@
   <button id="theme-toggle" type="button" title="Zmień motyw" aria-label="Zmień motyw">🌙</button>
 </header>
 
+<div id="offline-bar" class="hidden"></div>
+
 <main>
 
-  <!-- ============ NAWIGACJA GŁÓWNA ============ -->
+  <!-- Wyszukiwarka obejmująca wszystkie zakładki -->
+  <div class="search-row">
+    <input type="search" id="search-input" placeholder="Szukaj wszędzie: symbol, nazwa, uwagi, lokalizacja…" autocomplete="off">
+    <button id="search-clear" type="button" class="hidden" aria-label="Wyczyść wyszukiwanie">✕</button>
+  </div>
+
   <div class="tab-grid">
     <button class="tab-btn" data-tab="urzadzenia">⚡ Urządzenia</button>
     <button class="tab-btn" data-tab="rozdzielnie">🗄️ Rozdzielnie</button>
-    <button class="tab-btn" data-tab="termopary">🌡️ Termopary</button>
+    <button class="tab-btn" data-tab="termopary">🌡️ Termopary<span id="tab-badge" class="tab-badge hidden"></span></button>
     <button class="tab-btn" data-tab="inne">📍 Inne urządzenia</button>
   </div>
 
   <div id="global-alert"></div>
-
-  <!-- ============ TREŚĆ AKTYWNEJ ZAKŁADKI ============ -->
   <div id="content"></div>
 
 </main>
@@ -516,9 +560,17 @@
   <button class="btn-secondary" data-tab="admin">⚙️ Administracja</button>
 </div>
 
+<div id="lightbox" class="hidden">
+  <button class="lb-close" type="button" aria-label="Zamknij">✕</button>
+  <button class="lb-nav lb-prev hidden" type="button" aria-label="Poprzednie">‹</button>
+  <img alt="Podgląd zdjęcia">
+  <button class="lb-nav lb-next hidden" type="button" aria-label="Następne">›</button>
+  <div class="lb-count"></div>
+</div>
+
 <script>
 /* ================================================================
-   KONFIGURACJA — dane Twojego projektu Supabase
+   KONFIGURACJA — dane projektu Supabase
 ================================================================ */
 const SUPABASE_URL = "https://yimyjcrnibvgdrtjhzmi.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXlqY3JuaWJ2Z2RydGpoem1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MzU2MjYsImV4cCI6MjEwNTUxMTYyNn0.u5fTGhmKQRWKVG7eJRp-XUhdozNGmjx5IZyNWHrvGig";
@@ -530,15 +582,37 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 ================================================================ */
 let session = null;
 let currentTab = 'urzadzenia';
-let rozdzielnieCache = [];
-let urzadzeniaFilter = { search: '', rozdzielniaId: '' };
-let editing = null; // { table: 'urzadzenia', id: '...' } gdy edytujemy rekord
+let szukanaFraza = '';
+let filtrRozdzielni = '';
+
+const DOMYSLNE_SORTOWANIE = { urzadzenia: 'najnowsze', rozdzielnie: 'kod', termopary: 'pilnosc', inne: 'najnowsze' };
+let sortowanie = { ...DOMYSLNE_SORTOWANIE };
+
+const OPCJE_SORTOWANIA = {
+  urzadzenia:  [['najnowsze', 'Najnowsze'], ['symbol', 'Symbol A–Z'], ['rozdzielnia', 'Rozdzielnia']],
+  rozdzielnie: [['kod', 'Kod (liczbowo)'], ['liczba', 'Liczba urządzeń'], ['najnowsze', 'Najnowsze']],
+  termopary:   [['pilnosc', 'Pilność wymiany'], ['najnowsze', 'Najnowsze'], ['symbol', 'Symbol A–Z']],
+  inne:        [['najnowsze', 'Najnowsze'], ['nazwa', 'Nazwa A–Z']]
+};
+
+/* Wspólna pamięć na dane — jedno pobranie obsługuje wszystkie zakładki,
+   wyszukiwarkę, liczniki i tryb offline. */
+const DANE = { rozdzielnie: [], urzadzenia: [], termopary: [], termopary_historia: [], inne_urzadzenia: [] };
+let daneZKopii = false;
+let czasKopii = null;
+
+const KLUCZ_KOPII = 'kopia-danych-v1';
 
 const els = {
   content: document.getElementById('content'),
   sessionInfo: document.getElementById('session-info'),
   globalAlert: document.getElementById('global-alert'),
   tabButtons: document.querySelectorAll('[data-tab]'),
+  offlineBar: document.getElementById('offline-bar'),
+  search: document.getElementById('search-input'),
+  searchClear: document.getElementById('search-clear'),
+  tabBadge: document.getElementById('tab-badge'),
+  lightbox: document.getElementById('lightbox')
 };
 
 /* ================================================================
@@ -557,6 +631,11 @@ function formatDateTime(iso) {
   return d.toLocaleDateString('pl-PL') + ', ' + d.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('pl-PL');
+}
+
 function addDays(dateStr, days) {
   const d = new Date(dateStr);
   d.setDate(d.getDate() + Number(days));
@@ -567,20 +646,27 @@ function daysBetween(a, b) {
   return Math.round((a - b) / (1000 * 60 * 60 * 24));
 }
 
-// Liczy średni odstęp (w dniach) między ostatnimi maks. 3 zarejestrowanymi
-// wymianami. Zwraca null, jeśli w historii są mniej niż 2 wymiany —
-// wtedy strona korzysta z ręcznie wpisanej wartości żywotności.
-function sredniaZywotnosc(history) {
-  const daty = history
-    .map(h => new Date(h.data_wymiany))
-    .sort((a, b) => a - b)
-    .slice(-3);
-  if (daty.length < 2) return null;
-  let suma = 0;
-  for (let i = 1; i < daty.length; i++) {
-    suma += daysBetween(daty[i], daty[i - 1]);
-  }
-  return Math.round(suma / (daty.length - 1));
+/* Porównywanie tekstu bez względu na wielkość liter i polskie znaki,
+   żeby "lacznik" znalazł też "Łącznik". */
+function uprosc(tekst) {
+  return String(tekst ?? '')
+    .toLowerCase()
+    .replaceAll('ł', 'l')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function porownajTekst(a, b) {
+  return String(a ?? '').localeCompare(String(b ?? ''), 'pl', { numeric: true, sensitivity: 'base' });
+}
+
+function porownajDaty(a, b) {
+  return new Date(b || 0) - new Date(a || 0); // najnowsze pierwsze
+}
+
+/* Numer z kodu rozdzielni ("T21" → 21), żeby T9 było przed T21. */
+function numerKodu(kod) {
+  const m = String(kod || '').match(/\d+/);
+  return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER;
 }
 
 function showAlert(message, type = 'error') {
@@ -588,14 +674,18 @@ function showAlert(message, type = 'error') {
   setTimeout(() => { els.globalAlert.innerHTML = ''; }, 5000);
 }
 
-function isLoggedIn() {
-  return !!session;
+function isLoggedIn() { return !!session; }
+
+function nowyIdentyfikator() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
 }
 
 /* ================================================================
    MOTYW JASNY / CIEMNY
-   Domyślnie ciemny; wybór zapamiętywany w przeglądarce użytkownika,
-   więc każda osoba ustawia go sobie osobno na swoim telefonie.
 ================================================================ */
 function ustawMotyw(motyw, zapamietaj) {
   const jasny = motyw === 'light';
@@ -624,11 +714,99 @@ function initMotyw() {
 }
 
 /* ================================================================
+   POZYCJA PRZEWIJANIA
+   Przy przerysowaniu listy podmieniana jest cała jej zawartość, przez co
+   strona "skakała" na początek. Zapamiętujemy pozycję i wracamy na nią.
+================================================================ */
+let pozycjaDoPrzywrocenia = 0;
+let pozycjaZapisana = false;
+
+function zapiszPozycje(naGore) {
+  if (pozycjaZapisana) return;
+  pozycjaZapisana = true;
+  pozycjaDoPrzywrocenia = naGore ? 0 : (window.scrollY || document.documentElement.scrollTop || 0);
+}
+
+function przywrocPozycje() {
+  const y = pozycjaDoPrzywrocenia;
+  pozycjaZapisana = false;
+  const ustaw = () => window.scrollTo(0, y);
+  ustaw();
+  requestAnimationFrame(ustaw);
+  setTimeout(ustaw, 120);
+}
+
+/* ================================================================
+   PODGLĄD ZDJĘCIA NA WIERZCHU STRONY
+================================================================ */
+let podgladZdjecia = { lista: [], index: 0 };
+
+function otworzPodglad(lista, index) {
+  podgladZdjecia = { lista, index };
+  document.body.classList.add('lb-open');
+  els.lightbox.classList.remove('hidden');
+  pokazZdjeciePodgladu();
+}
+
+function pokazZdjeciePodgladu() {
+  const { lista, index } = podgladZdjecia;
+  els.lightbox.querySelector('img').src = lista[index];
+  const wiele = lista.length > 1;
+  els.lightbox.querySelector('.lb-prev').classList.toggle('hidden', !wiele);
+  els.lightbox.querySelector('.lb-next').classList.toggle('hidden', !wiele);
+  els.lightbox.querySelector('.lb-count').textContent = wiele ? `${index + 1} / ${lista.length}` : '';
+}
+
+function zamknijPodglad() {
+  els.lightbox.classList.add('hidden');
+  document.body.classList.remove('lb-open');
+  els.lightbox.querySelector('img').removeAttribute('src');
+}
+
+function przesunPodglad(krok) {
+  const n = podgladZdjecia.lista.length;
+  podgladZdjecia.index = (podgladZdjecia.index + krok + n) % n;
+  pokazZdjeciePodgladu();
+}
+
+function initPodglad() {
+  // Kliknięcie miniatury gdziekolwiek na liście otwiera podgląd
+  els.content.addEventListener('click', (e) => {
+    const img = e.target.closest('.photo-row img');
+    if (!img) return;
+    const wiersz = img.closest('.photo-row');
+    const zdjecia = [...wiersz.querySelectorAll('img')];
+    otworzPodglad(zdjecia.map(x => x.src), zdjecia.indexOf(img));
+  });
+
+  els.lightbox.addEventListener('click', (e) => {
+    if (e.target.closest('.lb-prev')) { przesunPodglad(-1); return; }
+    if (e.target.closest('.lb-next')) { przesunPodglad(1); return; }
+    zamknijPodglad(); // kliknięcie tła, zdjęcia lub ✕ zamyka
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (els.lightbox.classList.contains('hidden')) return;
+    if (e.key === 'Escape') zamknijPodglad();
+    if (e.key === 'ArrowLeft') przesunPodglad(-1);
+    if (e.key === 'ArrowRight') przesunPodglad(1);
+  });
+}
+
+/* ================================================================
    SESJA / LOGOWANIE
 ================================================================ */
 async function initSession() {
-  const { data } = await sb.auth.getSession();
-  session = data.session;
+  try {
+    // Bez zasięgu odświeżanie tokenu potrafi się zaciąć — nie blokujemy startu.
+    const wynik = await Promise.race([
+      sb.auth.getSession(),
+      new Promise(res => setTimeout(() => res({ data: { session: null } }), 5000))
+    ]);
+    session = wynik?.data?.session || null;
+  } catch (e) {
+    session = null;
+  }
   renderSessionInfo();
 
   sb.auth.onAuthStateChange((_event, newSession) => {
@@ -636,9 +814,8 @@ async function initSession() {
     const nowyUzytkownik = newSession?.user?.id || null;
     session = newSession;
     renderSessionInfo();
-    // Widok przerysowujemy TYLKO wtedy, gdy faktycznie zmienił się zalogowany
-    // użytkownik. Bez tego warunku każdy powrót na kartę przeglądarki
-    // (Supabase odświeża wtedy token) przeładowywał listę i przewijał ją na górę.
+    // Przerysowujemy TYLKO przy faktycznej zmianie użytkownika — bez tego
+    // powrót na kartę przeglądarki przewijał listę na górę.
     if (poprzedniUzytkownik !== nowyUzytkownik) render({ naGore: true });
   });
 }
@@ -663,67 +840,237 @@ async function logout() {
 }
 
 /* ================================================================
-   POZYCJA PRZEWIJANIA
-   Przy każdym przerysowaniu listy podmieniana jest cała jej zawartość,
-   przez co strona "skakała" na początek. Poniższe funkcje zapamiętują
-   pozycję przed przerysowaniem i przywracają ją, gdy nowa lista jest gotowa.
+   DANE — jedno pobranie + kopia na czas braku zasięgu
 ================================================================ */
-let pozycjaDoPrzywrocenia = 0;
-let pozycjaZapisana = false;
-
-function zapiszPozycje(naGore) {
-  if (pozycjaZapisana) return;     // nie nadpisuj pozycji zapisanej wyżej w cyklu
-  pozycjaZapisana = true;
-  pozycjaDoPrzywrocenia = naGore ? 0 : (window.scrollY || document.documentElement.scrollTop || 0);
+function czyBladSieci(err) {
+  const tekst = String(err?.message || err || '');
+  return !navigator.onLine || /failed to fetch|networkerror|load failed|network request failed|timeout/i.test(tekst);
 }
 
-function przywrocPozycje() {
-  const y = pozycjaDoPrzywrocenia;
-  pozycjaZapisana = false;
-  const ustaw = () => window.scrollTo(0, y);
-  ustaw();                            // od razu
-  requestAnimationFrame(ustaw);       // po przeliczeniu układu strony
-  setTimeout(ustaw, 120);             // po dociągnięciu miniatur zdjęć
+function zapiszKopie() {
+  try {
+    localStorage.setItem(KLUCZ_KOPII, JSON.stringify({ czas: new Date().toISOString(), dane: DANE }));
+  } catch (e) { /* brak miejsca lub tryb prywatny — pomijamy */ }
+}
+
+function wczytajKopie() {
+  try {
+    const zapis = JSON.parse(localStorage.getItem(KLUCZ_KOPII) || 'null');
+    if (zapis && zapis.dane) return zapis;
+  } catch (e) { /* uszkodzona kopia */ }
+  return null;
+}
+
+async function pobierzWszystko() {
+  try {
+    const [r, u, t, h, i] = await Promise.all([
+      sb.from('rozdzielnie').select('*'),
+      sb.from('urzadzenia').select('*'),
+      sb.from('termopary').select('*'),
+      sb.from('termopary_historia').select('*'),
+      sb.from('inne_urzadzenia').select('*')
+    ]);
+    const blad = r.error || u.error || t.error || h.error || i.error;
+    if (blad) throw blad;
+
+    DANE.rozdzielnie = r.data || [];
+    DANE.urzadzenia = u.data || [];
+    DANE.termopary = t.data || [];
+    DANE.termopary_historia = h.data || [];
+    DANE.inne_urzadzenia = i.data || [];
+    daneZKopii = false;
+    czasKopii = null;
+    zapiszKopie();
+  } catch (err) {
+    if (!czyBladSieci(err)) throw err;          // błąd uprawnień itp. pokazujemy wprost
+    const zapis = wczytajKopie();
+    if (!zapis) throw new Error('Brak połączenia i brak zapisanej kopii danych. Otwórz stronę raz z zasięgiem, żeby pobrać katalog.');
+    Object.assign(DANE, zapis.dane);
+    daneZKopii = true;
+    czasKopii = zapis.czas;
+  }
+  pokazPasekOffline();
+  odswiezOdznakeTermopar();
+}
+
+function pokazPasekOffline() {
+  if (daneZKopii) {
+    els.offlineBar.textContent = `📴 Brak połączenia — dane z ${formatDateTime(czasKopii)}. Zapisywanie zmian jest w tym trybie niemożliwe.`;
+    els.offlineBar.classList.remove('hidden');
+  } else {
+    els.offlineBar.classList.add('hidden');
+  }
+}
+
+/* Powiązania i liczniki wyliczane z pobranych danych */
+function rozdzielniaDla(id) {
+  return DANE.rozdzielnie.find(r => r.id === id) || null;
+}
+
+function liczbaUrzadzenWRozdzielni(id) {
+  return DANE.urzadzenia.filter(u => u.rozdzielnia_id === id).length;
+}
+
+function historiaTermopary(id) {
+  return DANE.termopary_historia
+    .filter(h => h.termopara_id === id)
+    .sort((a, b) => new Date(b.data_wymiany) - new Date(a.data_wymiany));
 }
 
 /* ================================================================
-   NAWIGACJA
+   TERMOPARY — żywotność i pilność wymiany
+================================================================ */
+const PROG_ZBLIZA_SIE = 14; // dni
+
+/* Średni odstęp między ostatnimi (maks. 3) wymianami. */
+function sredniaZywotnosc(historia) {
+  const daty = historia.map(h => new Date(h.data_wymiany)).sort((a, b) => a - b).slice(-3);
+  if (daty.length < 2) return null;
+  let suma = 0;
+  for (let i = 1; i < daty.length; i++) suma += daysBetween(daty[i], daty[i - 1]);
+  return Math.round(suma / (daty.length - 1));
+}
+
+function stanTermopary(t) {
+  const historia = historiaTermopary(t.id);
+  const srednia = sredniaZywotnosc(historia);
+  const zywotnosc = srednia !== null ? srednia : t.zywotnosc_dni;
+  const nastepna = addDays(t.ostatnia_wymiana, zywotnosc);
+  const zostalo = daysBetween(nastepna, new Date());
+  return {
+    historia,
+    srednia,
+    zywotnosc,
+    nastepna,
+    zostalo,
+    zalegla: zostalo < 0,
+    zblizaSie: zostalo >= 0 && zostalo <= PROG_ZBLIZA_SIE
+  };
+}
+
+function odswiezOdznakeTermopar() {
+  let zalegle = 0, wkrotce = 0;
+  for (const t of DANE.termopary) {
+    const s = stanTermopary(t);
+    if (s.zalegla) zalegle++;
+    else if (s.zblizaSie) wkrotce++;
+  }
+  const suma = zalegle + wkrotce;
+  if (suma === 0) {
+    els.tabBadge.classList.add('hidden');
+    return;
+  }
+  els.tabBadge.textContent = String(suma);
+  els.tabBadge.classList.remove('hidden');
+  els.tabBadge.classList.toggle('soon', zalegle === 0);
+  els.tabBadge.title = zalegle
+    ? `${zalegle} zaległych, ${wkrotce} zbliża się`
+    : `${wkrotce} zbliża się do wymiany`;
+}
+
+/* ================================================================
+   NAWIGACJA I SORTOWANIE
 ================================================================ */
 function switchTab(tab, extra) {
   currentTab = tab;
-  editing = null;
   if (tab === 'urzadzenia' && extra && extra.rozdzielniaId) {
-    urzadzeniaFilter.rozdzielniaId = extra.rozdzielniaId;
+    filtrRozdzielni = extra.rozdzielniaId;
   }
+  if (szukanaFraza) { szukanaFraza = ''; els.search.value = ''; els.searchClear.classList.add('hidden'); }
   render({ naGore: true });
 }
 
-els.tabButtons.forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-});
-
 function updateActiveTabStyles() {
   els.tabButtons.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === currentTab);
+    btn.classList.toggle('active', !szukanaFraza && btn.dataset.tab === currentTab);
   });
 }
 
+function wczytajSortowanie() {
+  try {
+    const zapis = JSON.parse(localStorage.getItem('sortowanie') || 'null');
+    if (zapis) sortowanie = { ...DOMYSLNE_SORTOWANIE, ...zapis };
+  } catch (e) { /* pomijamy */ }
+}
+
+function zapiszSortowanie() {
+  try { localStorage.setItem('sortowanie', JSON.stringify(sortowanie)); } catch (e) { /* pomijamy */ }
+}
+
+function sortRowHtml(zakladka) {
+  const opcje = OPCJE_SORTOWANIA[zakladka].map(([wartosc, etykieta]) =>
+    `<option value="${wartosc}" ${sortowanie[zakladka] === wartosc ? 'selected' : ''}>${etykieta}</option>`
+  ).join('');
+  return `
+    <div class="sort-row">
+      <label for="sort-select">Sortuj</label>
+      <select id="sort-select" data-zakladka="${zakladka}">${opcje}</select>
+    </div>`;
+}
+
+function bindSortRow() {
+  const select = document.getElementById('sort-select');
+  if (!select) return;
+  select.addEventListener('change', (e) => {
+    sortowanie[e.target.dataset.zakladka] = e.target.value;
+    zapiszSortowanie();
+    render({ bezPobierania: true });
+  });
+}
+
+function posortujUrzadzenia(lista) {
+  const kopia = [...lista];
+  const tryb = sortowanie.urzadzenia;
+  if (tryb === 'symbol') kopia.sort((a, b) => porownajTekst(a.symbol, b.symbol));
+  else if (tryb === 'rozdzielnia') kopia.sort((a, b) => {
+    const ra = rozdzielniaDla(a.rozdzielnia_id), rb = rozdzielniaDla(b.rozdzielnia_id);
+    return (numerKodu(ra?.kod) - numerKodu(rb?.kod)) || porownajTekst(a.symbol, b.symbol);
+  });
+  else kopia.sort((a, b) => porownajDaty(a.created_at, b.created_at));
+  return kopia;
+}
+
+function posortujRozdzielnie(lista) {
+  const kopia = [...lista];
+  const tryb = sortowanie.rozdzielnie;
+  if (tryb === 'liczba') kopia.sort((a, b) =>
+    (liczbaUrzadzenWRozdzielni(b.id) - liczbaUrzadzenWRozdzielni(a.id)) || (numerKodu(a.kod) - numerKodu(b.kod)));
+  else if (tryb === 'najnowsze') kopia.sort((a, b) => porownajDaty(a.created_at, b.created_at));
+  else kopia.sort((a, b) => numerKodu(a.kod) - numerKodu(b.kod));
+  return kopia;
+}
+
+function posortujTermopary(lista) {
+  const kopia = [...lista];
+  const tryb = sortowanie.termopary;
+  if (tryb === 'symbol') kopia.sort((a, b) => porownajTekst(a.symbol, b.symbol));
+  else if (tryb === 'najnowsze') kopia.sort((a, b) => porownajDaty(a.created_at, b.created_at));
+  else kopia.sort((a, b) => stanTermopary(a).zostalo - stanTermopary(b).zostalo); // najpilniejsze na górze
+  return kopia;
+}
+
+function posortujInne(lista) {
+  const kopia = [...lista];
+  if (sortowanie.inne === 'nazwa') kopia.sort((a, b) => porownajTekst(a.nazwa, b.nazwa));
+  else kopia.sort((a, b) => porownajDaty(a.created_at, b.created_at));
+  return kopia;
+}
+
 /* ================================================================
-   RENDER GŁÓWNY — przełącza między sekcjami
+   RENDER GŁÓWNY
 ================================================================ */
 async function render(opcje = {}) {
   zapiszPozycje(opcje.naGore === true);
   updateActiveTabStyles();
-  // Napis "Ładowanie danych…" podmieniamy tylko przy zmianie zakładki —
-  // przy odświeżaniu bieżącej listy stara treść zostaje do czasu,
-  // aż nowa będzie gotowa (brak migotania i skoku strony).
   if (opcje.naGore === true) els.content.innerHTML = '<p class="empty-state">Ładowanie danych…</p>';
   try {
-    if (currentTab === 'urzadzenia') await renderUrzadzenia();
-    else if (currentTab === 'rozdzielnie') await renderRozdzielnie();
-    else if (currentTab === 'termopary') await renderTermopary();
-    else if (currentTab === 'inne') await renderInne();
-    else if (currentTab === 'admin') await renderAdmin();
+    if (!opcje.bezPobierania) await pobierzWszystko();
+    if (szukanaFraza.trim()) renderWyniki();
+    else if (currentTab === 'urzadzenia') renderUrzadzenia();
+    else if (currentTab === 'rozdzielnie') renderRozdzielnie();
+    else if (currentTab === 'termopary') renderTermopary();
+    else if (currentTab === 'inne') renderInne();
+    else if (currentTab === 'admin') renderAdmin();
   } catch (err) {
     console.error(err);
     els.content.innerHTML = `<div class="alert">Wystąpił błąd podczas wczytywania danych: ${escapeHtml(err.message || err)}</div>`;
@@ -732,14 +1079,573 @@ async function render(opcje = {}) {
 }
 
 /* ================================================================
+   WYSZUKIWARKA OBEJMUJĄCA WSZYSTKIE ZAKŁADKI
+================================================================ */
+function pasujeDoFrazy(fraza, ...pola) {
+  const szukane = uprosc(fraza);
+  return pola.some(p => uprosc(p).includes(szukane));
+}
+
+function renderWyniki() {
+  const fraza = szukanaFraza.trim();
+
+  const urzadzenia = DANE.urzadzenia.filter(u => {
+    const r = rozdzielniaDla(u.rozdzielnia_id);
+    return pasujeDoFrazy(fraza, u.symbol, u.nazwa, u.uwagi, r?.kod, r?.nazwa);
+  });
+  const rozdzielnie = DANE.rozdzielnie.filter(r => pasujeDoFrazy(fraza, r.kod, r.nazwa, r.lokalizacja));
+  const termopary = DANE.termopary.filter(t => pasujeDoFrazy(fraza, t.symbol, t.nazwa, t.lokalizacja, t.status));
+  const inne = DANE.inne_urzadzenia.filter(u => pasujeDoFrazy(fraza, u.symbol, u.nazwa, u.lokalizacja, u.uwagi));
+
+  const razem = urzadzenia.length + rozdzielnie.length + termopary.length + inne.length;
+
+  const grupa = (tytul, lista, html) => lista.length
+    ? `<div class="result-group"><h3>${tytul} — ${lista.length}</h3>${lista.map(html).join('')}</div>`
+    : '';
+
+  els.content.innerHTML = `
+    <div class="row-between">
+      <h2 class="section-title">Wyniki: ${razem}</h2>
+      <button class="btn-secondary" id="btn-wyczysc-szukanie" style="flex:none;">Wyczyść</button>
+    </div>
+    ${razem === 0 ? `<p class="empty-state">Nic nie pasuje do „${escapeHtml(fraza)}".</p>` : ''}
+    ${grupa('⚡ Urządzenia', posortujUrzadzenia(urzadzenia), urzadzenieCardHtml)}
+    ${grupa('🗄️ Rozdzielnie', posortujRozdzielnie(rozdzielnie), rozdzielniaCardHtml)}
+    ${grupa('🌡️ Termopary', posortujTermopary(termopary), termoparaCardHtml)}
+    ${grupa('📍 Inne urządzenia', posortujInne(inne), inneCardHtml)}
+  `;
+
+  document.getElementById('btn-wyczysc-szukanie').addEventListener('click', wyczyscSzukanie);
+  bindAkcjeKart();
+}
+
+function wyczyscSzukanie() {
+  szukanaFraza = '';
+  els.search.value = '';
+  els.searchClear.classList.add('hidden');
+  render({ bezPobierania: true, naGore: true });
+}
+
+let licznikSzukania = null;
+function initSzukanie() {
+  els.search.addEventListener('input', (e) => {
+    szukanaFraza = e.target.value;
+    els.searchClear.classList.toggle('hidden', !szukanaFraza);
+    clearTimeout(licznikSzukania);
+    licznikSzukania = setTimeout(() => render({ bezPobierania: true }), 200);
+  });
+  els.searchClear.addEventListener('click', wyczyscSzukanie);
+}
+
+/* ================================================================
+   WSPÓLNE AKCJE NA KARTACH (edytuj / usuń / wymiana / pokaż urządzenia)
+================================================================ */
+function bindAkcjeKart() {
+  els.content.querySelectorAll('.card[data-id]').forEach(card => {
+    const id = card.dataset.id;
+    const typ = card.dataset.typ;
+    card.querySelector('.btn-edit')?.addEventListener('click', () => {
+      if (typ === 'urzadzenie') showUrzadzenieForm(id);
+      else if (typ === 'rozdzielnia') showRozdzielniaForm(id);
+      else if (typ === 'termopara') showTermoparaForm(id);
+      else if (typ === 'inne') showInneForm(id);
+    });
+    card.querySelector('.btn-delete')?.addEventListener('click', () => {
+      if (typ === 'urzadzenie') deleteUrzadzenie(id);
+      else if (typ === 'rozdzielnia') deleteRozdzielnia(id);
+      else if (typ === 'termopara') deleteTermopara(id);
+      else if (typ === 'inne') deleteInne(id);
+    });
+    card.querySelector('.btn-wymiana')?.addEventListener('click', () => wymianaTermopary(id));
+    card.querySelector('.btn-show-devices')?.addEventListener('click', () => switchTab('urzadzenia', { rozdzielniaId: id }));
+  });
+}
+
+function zdjeciaRowHtml(urls) {
+  if (!urls || !urls.length) return '';
+  return `<div class="photo-row">${urls.map(u =>
+    `<img src="${escapeHtml(u)}" loading="lazy" alt="Zdjęcie">`).join('')}</div>`;
+}
+
+function przyciskiEdycjiHtml() {
+  if (!isLoggedIn()) return '';
+  return `
+    <div class="btn-row">
+      <button class="btn-secondary btn-edit">✏️ Edytuj</button>
+      <button class="btn-danger btn-delete">🗑️ Usuń</button>
+    </div>`;
+}
+
+/* ================================================================
    SEKCJA: URZĄDZENIA
 ================================================================ */
-/* ================================================================
-   ZDJĘCIA — kompresja, wgrywanie, edytor miniaturek w formularzach
-================================================================ */
+function renderUrzadzenia() {
+  let lista = DANE.urzadzenia;
+  if (filtrRozdzielni) lista = lista.filter(u => u.rozdzielnia_id === filtrRozdzielni);
+  lista = posortujUrzadzenia(lista);
 
-// Zmniejsza zdjęcie po stronie przeglądarki przed wysłaniem (żeby nie
-// zapychać darmowego limitu magazynu i żeby strona ładowała się szybko).
+  const rozdzielnieOpcje = posortujRozdzielnie(DANE.rozdzielnie).map(r =>
+    `<option value="${r.id}" ${filtrRozdzielni === r.id ? 'selected' : ''}>${escapeHtml(r.kod)} — ${escapeHtml(r.nazwa)}</option>`
+  ).join('');
+
+  els.content.innerHTML = `
+    <label class="field">
+      <span>Rozdzielnia</span>
+      <select id="rozdzielnia-filter">
+        <option value="">Wszystkie rozdzielnie</option>
+        ${rozdzielnieOpcje}
+      </select>
+    </label>
+    ${sortRowHtml('urzadzenia')}
+    <div class="stat-chips">
+      <span>Pokazane: ${lista.length}</span>
+      <span>W bazie: ${DANE.urzadzenia.length} urządzeń</span>
+    </div>
+
+    <div class="row-between">
+      <h2 class="section-title">Urządzenia</h2>
+      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add" style="width:auto;">+ Dodaj</button>` : ''}
+    </div>
+
+    <div id="form-slot"></div>
+    <div id="list-slot">
+      ${lista.length ? lista.map(urzadzenieCardHtml).join('') : '<p class="empty-state">Brak urządzeń spełniających kryteria.</p>'}
+    </div>
+  `;
+
+  document.getElementById('rozdzielnia-filter').addEventListener('change', (e) => {
+    filtrRozdzielni = e.target.value;
+    render({ bezPobierania: true });
+  });
+  bindSortRow();
+  document.getElementById('btn-add')?.addEventListener('click', () => showUrzadzenieForm());
+  bindAkcjeKart();
+}
+
+function urzadzenieCardHtml(u) {
+  const r = rozdzielniaDla(u.rozdzielnia_id);
+  return `
+    <div class="card" data-id="${u.id}" data-typ="urzadzenie">
+      <div class="symbol">${escapeHtml(u.symbol)}</div>
+      <div class="nazwa">${escapeHtml(u.nazwa)}</div>
+      <div class="meta-grid">
+        <div class="meta-block">
+          <div class="label">Rozdzielnia</div>
+          <div class="value">${escapeHtml(r ? r.kod : '—')}</div>
+        </div>
+        <div class="meta-block">
+          <div class="label">Prąd znamionowy</div>
+          <div class="value">${u.prad_znamionowy !== null && u.prad_znamionowy !== undefined ? u.prad_znamionowy + ' A' : '—'}</div>
+        </div>
+        <div class="meta-block">
+          <div class="label">Napięcie</div>
+          <div class="value">${u.napiecie !== null && u.napiecie !== undefined ? u.napiecie + ' V' : '—'}</div>
+        </div>
+        ${u.uwagi ? `<div class="meta-block full"><div class="label">Uwagi</div><div class="value">${escapeHtml(u.uwagi)}</div></div>` : ''}
+      </div>
+      ${zdjeciaRowHtml(u.zdjecia)}
+      <div class="footer-row"><span>Dodano: ${formatDateTime(u.created_at)}</span></div>
+      ${przyciskiEdycjiHtml()}
+    </div>
+  `;
+}
+
+function showUrzadzenieForm(id) {
+  const existing = id ? DANE.urzadzenia.find(u => u.id === id) : null;
+  const recordId = id || nowyIdentyfikator();
+  const pm = createPhotoManager(existing?.zdjecia, 3);
+  const rozdzielnieOpcje = posortujRozdzielnie(DANE.rozdzielnie).map(r =>
+    `<option value="${r.id}" ${existing?.rozdzielnia_id === r.id ? 'selected' : ''}>${escapeHtml(r.kod)} — ${escapeHtml(r.nazwa)}</option>`
+  ).join('');
+
+  document.getElementById('form-slot').innerHTML = `
+    <div class="card">
+      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj urządzenie' : 'Nowe urządzenie'}</h3>
+      <form id="rekord-form">
+        <label class="field"><span>Symbol</span><input required name="symbol" value="${escapeHtml(existing?.symbol || '')}" placeholder="np. M-103"></label>
+        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}" placeholder="np. Wentylator wyciągowy"></label>
+        <label class="field"><span>Rozdzielnia</span>
+          <select required name="rozdzielnia_id"><option value="">— wybierz —</option>${rozdzielnieOpcje}</select>
+        </label>
+        <label class="field"><span>Prąd znamionowy (A)</span><input type="number" step="0.01" name="prad_znamionowy" value="${existing?.prad_znamionowy ?? ''}" placeholder="np. 12.5"></label>
+        <label class="field"><span>Napięcie (V)</span><input type="number" step="0.01" name="napiecie" value="${existing?.napiecie ?? ''}" placeholder="np. 400"></label>
+        <label class="field"><span>Uwagi</span><textarea name="uwagi" rows="2">${escapeHtml(existing?.uwagi || '')}</textarea></label>
+        ${photoManagerHtml(pm, 'zdj')}
+        <div class="btn-row">
+          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj urządzenie'}</button>
+          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  `;
+  bindPhotoPicker('zdj', pm);
+  bindAnuluj();
+
+  document.getElementById('rekord-form').addEventListener('submit', (e) =>
+    zapiszRekord(e, id, {
+      tabela: 'urzadzenia',
+      recordId,
+      pm,
+      stareZdjecia: existing?.zdjecia,
+      etykieta: id ? 'Zapisz zmiany' : 'Dodaj urządzenie',
+      buduj: (fd) => ({
+        symbol: fd.get('symbol').trim(),
+        nazwa: fd.get('nazwa').trim(),
+        rozdzielnia_id: fd.get('rozdzielnia_id'),
+        prad_znamionowy: fd.get('prad_znamionowy') ? Number(fd.get('prad_znamionowy')) : null,
+        napiecie: fd.get('napiecie') ? Number(fd.get('napiecie')) : null,
+        uwagi: fd.get('uwagi').trim() || null
+      })
+    })
+  );
+}
+
+async function deleteUrzadzenie(id) {
+  if (!confirm('Na pewno usunąć to urządzenie?')) return;
+  const existing = DANE.urzadzenia.find(u => u.id === id);
+  const { error } = await sb.from('urzadzenia').delete().eq('id', id);
+  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
+  for (const url of existing?.zdjecia || []) await deleteStoragePhoto(url);
+  showAlert('Usunięto urządzenie.', 'info');
+  render();
+}
+
+/* ================================================================
+   SEKCJA: ROZDZIELNIE
+================================================================ */
+function renderRozdzielnie() {
+  const lista = posortujRozdzielnie(DANE.rozdzielnie);
+  els.content.innerHTML = `
+    ${sortRowHtml('rozdzielnie')}
+    <div class="row-between">
+      <h2 class="section-title">Rozdzielnie</h2>
+      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add" style="width:auto;">+ Dodaj</button>` : ''}
+    </div>
+    <div id="form-slot"></div>
+    <div id="list-slot">
+      ${lista.length ? lista.map(rozdzielniaCardHtml).join('') : '<p class="empty-state">Brak rozdzielni w bazie.</p>'}
+    </div>
+  `;
+  bindSortRow();
+  document.getElementById('btn-add')?.addEventListener('click', () => showRozdzielniaForm());
+  bindAkcjeKart();
+}
+
+function rozdzielniaCardHtml(r) {
+  const liczba = liczbaUrzadzenWRozdzielni(r.id);
+  const slowo = liczba === 1 ? 'urządzenie' : (liczba % 10 >= 2 && liczba % 10 <= 4 && (liczba % 100 < 10 || liczba % 100 >= 20)) ? 'urządzenia' : 'urządzeń';
+  return `
+    <div class="card" data-id="${r.id}" data-typ="rozdzielnia">
+      <div class="row-between" style="margin-bottom:0;">
+        <div class="symbol">${escapeHtml(r.kod)}</div>
+        <span class="status-pill count">${liczba} ${slowo}</span>
+      </div>
+      <div class="nazwa">${escapeHtml(r.nazwa)}</div>
+      ${r.lokalizacja ? `<p style="color:var(--text-dim);font-size:13px;margin:0 0 10px;">📍 ${escapeHtml(r.lokalizacja)}</p>` : ''}
+      <div class="footer-row"><span>Dodano: ${formatDateTime(r.created_at)}</span></div>
+      <div class="btn-row" style="margin-bottom:8px;">
+        <button class="btn-secondary btn-show-devices">⚡ Pokaż urządzenia</button>
+      </div>
+      ${isLoggedIn() && r.google_maps_url ? `<a class="link" href="${escapeHtml(r.google_maps_url)}" target="_blank" rel="noopener"><button class="btn-ghost btn-block">📍 Google Maps</button></a>` : ''}
+      ${isLoggedIn() ? `<div style="height:8px;"></div>` : ''}
+      ${przyciskiEdycjiHtml()}
+    </div>
+  `;
+}
+
+function showRozdzielniaForm(id) {
+  const existing = id ? DANE.rozdzielnie.find(r => r.id === id) : null;
+  document.getElementById('form-slot').innerHTML = `
+    <div class="card">
+      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj rozdzielnię' : 'Nowa rozdzielnia'}</h3>
+      <form id="rekord-form">
+        <label class="field"><span>Kod</span><input required name="kod" value="${escapeHtml(existing?.kod || '')}" placeholder="np. T50"></label>
+        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}" placeholder="np. Rozdzielnia Sprężarkowni"></label>
+        <label class="field"><span>Lokalizacja</span><input name="lokalizacja" value="${escapeHtml(existing?.lokalizacja || '')}" placeholder="np. Hala D, parter"></label>
+        <label class="field"><span>Link do Google Maps (opcjonalnie)</span><input name="google_maps_url" value="${escapeHtml(existing?.google_maps_url || '')}" placeholder="https://maps.google.com/..."></label>
+        <div class="btn-row">
+          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj rozdzielnię'}</button>
+          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  `;
+  bindAnuluj();
+  document.getElementById('rekord-form').addEventListener('submit', (e) =>
+    zapiszRekord(e, id, {
+      tabela: 'rozdzielnie',
+      etykieta: id ? 'Zapisz zmiany' : 'Dodaj rozdzielnię',
+      buduj: (fd) => ({
+        kod: fd.get('kod').trim(),
+        nazwa: fd.get('nazwa').trim(),
+        lokalizacja: fd.get('lokalizacja').trim() || null,
+        google_maps_url: fd.get('google_maps_url').trim() || null
+      })
+    })
+  );
+}
+
+async function deleteRozdzielnia(id) {
+  const liczba = liczbaUrzadzenWRozdzielni(id);
+  if (liczba > 0) {
+    showAlert(`Nie można usunąć — do tej rozdzielni przypisano ${liczba} urządzeń. Najpierw przenieś je gdzie indziej.`);
+    return;
+  }
+  if (!confirm('Na pewno usunąć tę rozdzielnię?')) return;
+  const { error } = await sb.from('rozdzielnie').delete().eq('id', id);
+  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
+  showAlert('Usunięto rozdzielnię.', 'info');
+  render();
+}
+
+/* ================================================================
+   SEKCJA: TERMOPARY
+================================================================ */
+function renderTermopary() {
+  const lista = posortujTermopary(DANE.termopary);
+  const zalegle = DANE.termopary.filter(t => stanTermopary(t).zalegla).length;
+  const wkrotce = DANE.termopary.filter(t => stanTermopary(t).zblizaSie).length;
+
+  els.content.innerHTML = `
+    ${sortRowHtml('termopary')}
+    ${(zalegle || wkrotce) ? `<div class="stat-chips">
+      ${zalegle ? `<span style="background:var(--bad-bg);color:var(--bad-text);">⚠ Zaległe: ${zalegle}</span>` : ''}
+      ${wkrotce ? `<span style="background:var(--warn-bg);color:var(--warn-text);">Wymiana w ciągu ${PROG_ZBLIZA_SIE} dni: ${wkrotce}</span>` : ''}
+    </div>` : ''}
+    <div class="row-between">
+      <h2 class="section-title">Termopary</h2>
+      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add" style="width:auto;">+ Dodaj</button>` : ''}
+    </div>
+    <div id="form-slot"></div>
+    <div id="list-slot">
+      ${lista.length ? lista.map(termoparaCardHtml).join('') : '<p class="empty-state">Brak termopar w bazie.</p>'}
+    </div>
+  `;
+  bindSortRow();
+  document.getElementById('btn-add')?.addEventListener('click', () => showTermoparaForm());
+  bindAkcjeKart();
+}
+
+function termoparaCardHtml(t) {
+  const s = stanTermopary(t);
+  const etykietaStanu = s.zalegla ? 'DO WYMIANY' : (s.zblizaSie ? 'WKRÓTCE' : t.status);
+  const klasaStanu = s.zalegla ? 'bad' : (s.zblizaSie ? 'soon' : '');
+  const zywotnoscOpis = s.srednia !== null
+    ? `${s.srednia} dni (śr. z ostatnich wymian)`
+    : `${t.zywotnosc_dni} dni (ręcznie — brak wystarczającej historii)`;
+  const historiaHtml = s.historia.slice(0, 3)
+    .map(h => `<div style="font-size:13px;color:var(--text-dim);">${formatDate(h.data_wymiany)}</div>`).join('');
+
+  return `
+    <div class="card ${s.zalegla ? 'termopara-bad' : (s.zblizaSie ? 'termopara-soon' : '')}" data-id="${t.id}" data-typ="termopara">
+      <div class="row-between" style="margin-bottom:0;">
+        <div class="symbol">${escapeHtml(t.symbol)}</div>
+        <span class="status-pill ${klasaStanu}"><span class="dot"></span>${escapeHtml(etykietaStanu)}</span>
+      </div>
+      <div class="nazwa">${escapeHtml(t.nazwa)}</div>
+      <div class="meta-grid">
+        <div class="meta-block full"><div class="label">Lokalizacja</div><div class="value">${escapeHtml(t.lokalizacja || '—')}</div></div>
+        <div class="meta-block"><div class="label">Ostatnia wymiana</div><div class="value">${formatDate(t.ostatnia_wymiana)}</div></div>
+        <div class="meta-block"><div class="label">Żywotność</div><div class="value">${zywotnoscOpis}</div></div>
+        <div class="meta-block full">
+          <div class="label">Następna wymiana</div>
+          <div class="value">${s.nastepna.toLocaleDateString('pl-PL')} (${s.zostalo >= 0 ? s.zostalo + ' dni' : 'zaległe ' + Math.abs(s.zostalo) + ' dni'})</div>
+        </div>
+      </div>
+      ${historiaHtml ? `<div style="margin-bottom:10px;"><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-dim);margin-bottom:4px;">Historia wymian — ostatnie 3</div>${historiaHtml}</div>` : ''}
+      ${zdjeciaRowHtml(t.zdjecia)}
+      <div class="footer-row"><span>Dodano: ${formatDateTime(t.created_at)}</span></div>
+      <button class="btn-primary btn-block btn-wymiana" style="margin-bottom:8px;">🔧 Wymiana termopary</button>
+      ${przyciskiEdycjiHtml()}
+    </div>
+  `;
+}
+
+async function wymianaTermopary(id) {
+  if (!confirm('Zarejestrować dzisiejszą wymianę tej termopary?')) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const { error } = await sb.from('termopary_historia').insert({ termopara_id: id, data_wymiany: today });
+  if (error) { showAlert('Nie udało się zapisać wymiany: ' + error.message); return; }
+  showAlert('Zarejestrowano wymianę.', 'info');
+  render();
+}
+
+function showTermoparaForm(id) {
+  const existing = id ? DANE.termopary.find(t => t.id === id) : null;
+  const recordId = id || nowyIdentyfikator();
+  const pm = createPhotoManager(existing?.zdjecia, 2);
+
+  document.getElementById('form-slot').innerHTML = `
+    <div class="card">
+      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj termoparę' : 'Nowa termopara'}</h3>
+      <form id="rekord-form">
+        <label class="field"><span>Symbol</span><input required name="symbol" value="${escapeHtml(existing?.symbol || '')}" placeholder="np. TP-003"></label>
+        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}" placeholder="np. Termopara pieca 3"></label>
+        <label class="field"><span>Lokalizacja</span><input name="lokalizacja" value="${escapeHtml(existing?.lokalizacja || '')}"></label>
+        <label class="field"><span>Status</span>
+          <select name="status">
+            <option value="OK" ${existing?.status === 'OK' ? 'selected' : ''}>OK</option>
+            <option value="AWARIA" ${existing?.status === 'AWARIA' ? 'selected' : ''}>Awaria</option>
+          </select>
+        </label>
+        <label class="field"><span>Ostatnia wymiana</span><input required type="date" name="ostatnia_wymiana" value="${existing?.ostatnia_wymiana || new Date().toISOString().slice(0,10)}"></label>
+        <label class="field"><span>Żywotność startowa (dni)</span><input required type="number" min="1" name="zywotnosc_dni" value="${existing?.zywotnosc_dni || 90}"></label>
+        <p style="font-size:12px;color:var(--text-dim);margin-top:-8px;">Używana tylko dopóki nie zarejestrowano co najmniej 2 wymian — potem strona liczy żywotność automatycznie jako średnią z ostatnich wymian.</p>
+        ${photoManagerHtml(pm, 'zdj')}
+        <div class="btn-row">
+          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj termoparę'}</button>
+          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  `;
+  bindPhotoPicker('zdj', pm);
+  bindAnuluj();
+
+  document.getElementById('rekord-form').addEventListener('submit', (e) =>
+    zapiszRekord(e, id, {
+      tabela: 'termopary',
+      recordId,
+      pm,
+      stareZdjecia: existing?.zdjecia,
+      etykieta: id ? 'Zapisz zmiany' : 'Dodaj termoparę',
+      buduj: (fd) => ({
+        symbol: fd.get('symbol').trim(),
+        nazwa: fd.get('nazwa').trim(),
+        lokalizacja: fd.get('lokalizacja').trim() || null,
+        status: fd.get('status'),
+        ostatnia_wymiana: fd.get('ostatnia_wymiana'),
+        zywotnosc_dni: Number(fd.get('zywotnosc_dni'))
+      })
+    })
+  );
+}
+
+async function deleteTermopara(id) {
+  if (!confirm('Na pewno usunąć tę termoparę? Historia wymian również zostanie usunięta.')) return;
+  const existing = DANE.termopary.find(t => t.id === id);
+  const { error } = await sb.from('termopary').delete().eq('id', id);
+  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
+  for (const url of existing?.zdjecia || []) await deleteStoragePhoto(url);
+  showAlert('Usunięto termoparę.', 'info');
+  render();
+}
+
+/* ================================================================
+   SEKCJA: INNE URZĄDZENIA
+================================================================ */
+function renderInne() {
+  const lista = posortujInne(DANE.inne_urzadzenia);
+  els.content.innerHTML = `
+    ${sortRowHtml('inne')}
+    <div class="row-between">
+      <h2 class="section-title">Inne urządzenia</h2>
+      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add" style="width:auto;">+ Dodaj</button>` : ''}
+    </div>
+    <div id="form-slot"></div>
+    <div id="list-slot">
+      ${lista.length ? lista.map(inneCardHtml).join('') : '<p class="empty-state">Brak nietypowych urządzeń w bazie.</p>'}
+    </div>
+  `;
+  bindSortRow();
+  document.getElementById('btn-add')?.addEventListener('click', () => showInneForm());
+  bindAkcjeKart();
+}
+
+function inneCardHtml(u) {
+  return `
+    <div class="card" data-id="${u.id}" data-typ="inne">
+      ${u.symbol ? `<div class="symbol">${escapeHtml(u.symbol)}</div>` : ''}
+      <div class="nazwa">${escapeHtml(u.nazwa)}</div>
+      ${u.lokalizacja ? `<p style="color:var(--text-dim);font-size:13px;margin:0 0 10px;">📍 ${escapeHtml(u.lokalizacja)}</p>` : ''}
+      ${u.uwagi ? `<div class="meta-block" style="margin-bottom:10px;"><div class="label">Uwagi</div><div class="value">${escapeHtml(u.uwagi)}</div></div>` : ''}
+      <div class="footer-row"><span>Dodano: ${formatDateTime(u.created_at)}</span></div>
+      ${przyciskiEdycjiHtml()}
+    </div>
+  `;
+}
+
+function showInneForm(id) {
+  const existing = id ? DANE.inne_urzadzenia.find(u => u.id === id) : null;
+  document.getElementById('form-slot').innerHTML = `
+    <div class="card">
+      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj urządzenie' : 'Nowe inne urządzenie'}</h3>
+      <form id="rekord-form">
+        <label class="field"><span>Symbol (opcjonalnie)</span><input name="symbol" value="${escapeHtml(existing?.symbol || '')}"></label>
+        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}"></label>
+        <label class="field"><span>Lokalizacja</span><input name="lokalizacja" value="${escapeHtml(existing?.lokalizacja || '')}"></label>
+        <label class="field"><span>Uwagi</span><textarea name="uwagi" rows="2">${escapeHtml(existing?.uwagi || '')}</textarea></label>
+        <div class="btn-row">
+          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj urządzenie'}</button>
+          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
+        </div>
+      </form>
+    </div>
+  `;
+  bindAnuluj();
+  document.getElementById('rekord-form').addEventListener('submit', (e) =>
+    zapiszRekord(e, id, {
+      tabela: 'inne_urzadzenia',
+      etykieta: id ? 'Zapisz zmiany' : 'Dodaj urządzenie',
+      buduj: (fd) => ({
+        symbol: fd.get('symbol').trim() || null,
+        nazwa: fd.get('nazwa').trim(),
+        lokalizacja: fd.get('lokalizacja').trim() || null,
+        uwagi: fd.get('uwagi').trim() || null
+      })
+    })
+  );
+}
+
+async function deleteInne(id) {
+  if (!confirm('Na pewno usunąć to urządzenie?')) return;
+  const { error } = await sb.from('inne_urzadzenia').delete().eq('id', id);
+  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
+  showAlert('Usunięto urządzenie.', 'info');
+  render();
+}
+
+/* ================================================================
+   WSPÓLNY ZAPIS FORMULARZA
+================================================================ */
+function bindAnuluj() {
+  document.getElementById('cancel-form').addEventListener('click', () => {
+    document.getElementById('form-slot').innerHTML = '';
+  });
+}
+
+async function zapiszRekord(e, id, opcje) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const przycisk = e.target.querySelector('button[type="submit"]');
+  przycisk.disabled = true;
+  przycisk.textContent = 'Zapisywanie…';
+  try {
+    const payload = opcje.buduj(fd);
+    if (opcje.pm) {
+      payload.zdjecia = await finalizujZdjecia(opcje.tabela, opcje.recordId, opcje.pm, opcje.stareZdjecia);
+    }
+    if (id) {
+      const { error } = await sb.from(opcje.tabela).update(payload).eq('id', id);
+      if (error) throw error;
+      showAlert('Zapisano zmiany.', 'info');
+    } else {
+      if (opcje.recordId) payload.id = opcje.recordId;
+      const { error } = await sb.from(opcje.tabela).insert(payload);
+      if (error) throw error;
+      showAlert('Dodano wpis.', 'info');
+    }
+    render();
+  } catch (err) {
+    showAlert('Nie udało się zapisać: ' + (err.message || err));
+    przycisk.disabled = false;
+    przycisk.textContent = opcje.etykieta;
+  }
+}
+
+/* ================================================================
+   ZDJĘCIA — kompresja, wgrywanie, edytor miniaturek
+================================================================ */
 function compressImage(file, maxDim = 1280, quality = 0.75) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -765,8 +1671,6 @@ function compressImage(file, maxDim = 1280, quality = 0.75) {
   });
 }
 
-// Wgrywa listę plików do magazynu Supabase pod ścieżką <tabela>/<id>/...
-// i zwraca ich publiczne adresy URL.
 async function uploadPhotos(table, recordId, files) {
   const urls = [];
   for (const file of files) {
@@ -780,20 +1684,17 @@ async function uploadPhotos(table, recordId, files) {
   return urls;
 }
 
-// Usuwa plik z magazynu na podstawie jego publicznego adresu URL.
 async function deleteStoragePhoto(url) {
   try {
     const marker = '/object/public/zdjecia/';
     const idx = url.indexOf(marker);
     if (idx === -1) return;
-    const path = url.slice(idx + marker.length);
-    await sb.storage.from('zdjecia').remove([path]);
+    await sb.storage.from('zdjecia').remove([url.slice(idx + marker.length)]);
   } catch (e) {
     console.warn('Nie udało się usunąć starego zdjęcia z magazynu:', e);
   }
 }
 
-// Stan "menedżera zdjęć" używany w formularzach dodawania/edycji.
 function createPhotoManager(existingUrls, maxCount) {
   return { existing: [...(existingUrls || [])], files: [], maxCount };
 }
@@ -801,8 +1702,6 @@ function photoManagerRemaining(pm) {
   return pm.maxCount - pm.existing.length - pm.files.length;
 }
 
-// Renderuje edytor miniaturek: istniejące zdjęcia (z przyciskiem usuwania),
-// nowo wybrane pliki (jeszcze niewgrane) i przycisk dodawania kolejnego.
 function photoManagerHtml(pm, idPrefix) {
   const existingThumbs = pm.existing.map((url, i) => `
     <div class="photo-thumb">
@@ -852,607 +1751,21 @@ function rerenderPhotoPicker(idPrefix, pm) {
   bindPhotoPicker(idPrefix, pm);
 }
 
-// Wiersz miniaturek na karcie urządzenia/termopary (klik = pełny rozmiar w nowej karcie).
-function zdjeciaRowHtml(urls) {
-  if (!urls || !urls.length) return '';
-  return `<div class="photo-row">${urls.map(u => `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img src="${escapeHtml(u)}" loading="lazy"></a>`).join('')}</div>`;
-}
-
-// Wgrywa nowo dodane pliki i usuwa ze magazynu te odznaczone przez
-// użytkownika, zwracając ostateczną listę adresów do zapisania w bazie.
 async function finalizujZdjecia(table, recordId, pm, originalUrls) {
-  const removed = (originalUrls || []).filter(u => !pm.existing.includes(u));
-  for (const u of removed) await deleteStoragePhoto(u);
-  let finalUrls = [...pm.existing];
-  if (pm.files.length) {
-    const newUrls = await uploadPhotos(table, recordId, pm.files);
-    finalUrls = finalUrls.concat(newUrls);
-  }
-  return finalUrls;
-}
-
-// Wyciąga pierwszą liczbę z kodu rozdzielni (np. "T21" -> 21), żeby
-// sortować w kolejności liczbowej, a nie alfabetycznej (T9 przed T21).
-function numerKoduRozdzielni(kod) {
-  const m = String(kod || '').match(/\d+/);
-  return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER;
-}
-
-async function fetchRozdzielnieList() {
-  const { data, error } = await sb.from('rozdzielnie').select('*');
-  if (error) throw error;
-  rozdzielnieCache = (data || []).sort((a, b) => numerKoduRozdzielni(a.kod) - numerKoduRozdzielni(b.kod));
-  return rozdzielnieCache;
-}
-
-async function renderUrzadzenia() {
-  await fetchRozdzielnieList();
-
-  let query = sb.from('urzadzenia').select('*, rozdzielnie(kod, nazwa)').order('created_at', { ascending: false });
-  if (urzadzeniaFilter.rozdzielniaId) {
-    query = query.eq('rozdzielnia_id', urzadzeniaFilter.rozdzielniaId);
-  }
-  const { data, error } = await query;
-  if (error) throw error;
-
-  let list = data || [];
-  const searchTerm = urzadzeniaFilter.search.trim().toLowerCase();
-  if (searchTerm) {
-    list = list.filter(u =>
-      (u.symbol || '').toLowerCase().includes(searchTerm) ||
-      (u.nazwa || '').toLowerCase().includes(searchTerm)
-    );
-  }
-
-  const rozdzielnieOptions = rozdzielnieCache.map(r =>
-    `<option value="${r.id}" ${urzadzeniaFilter.rozdzielniaId === r.id ? 'selected' : ''}>${escapeHtml(r.kod)} — ${escapeHtml(r.nazwa)}</option>`
-  ).join('');
-
-  els.content.innerHTML = `
-    <label class="field">
-      <span>Szukaj</span>
-      <input type="text" id="search-input" placeholder="Wpisz symbol albo nazwę urządzenia…" value="${escapeHtml(urzadzeniaFilter.search)}">
-    </label>
-    <label class="field">
-      <span>Rozdzielnia</span>
-      <select id="rozdzielnia-filter">
-        <option value="">Wszystkie rozdzielnie</option>
-        ${rozdzielnieOptions}
-      </select>
-    </label>
-    <div class="stat-chips">
-      <span>Wyniki: ${list.length}</span>
-      <span>W bazie: ${data.length} urządzeń</span>
-    </div>
-
-    <div class="row-between">
-      <h2 class="section-title">Urządzenia</h2>
-      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add-urzadzenie" style="width:auto;">+ Dodaj</button>` : ''}
-    </div>
-
-    <div id="form-slot"></div>
-    <div id="list-slot">
-      ${list.length ? list.map(u => urzadzenieCardHtml(u)).join('') : '<p class="empty-state">Brak urządzeń spełniających kryteria wyszukiwania.</p>'}
-    </div>
-  `;
-
-  document.getElementById('search-input').addEventListener('input', (e) => {
-    urzadzeniaFilter.search = e.target.value;
-    // Odśwież tylko listę, bez przeładowania całej sekcji (płynniejsze pisanie)
-    debounceRerenderUrzadzenia();
-  });
-  document.getElementById('rozdzielnia-filter').addEventListener('change', (e) => {
-    urzadzeniaFilter.rozdzielniaId = e.target.value;
-    renderUrzadzenia();
-  });
-
-  if (isLoggedIn()) {
-    document.getElementById('btn-add-urzadzenie').addEventListener('click', () => {
-      showUrzadzenieForm();
-    });
-    bindUrzadzenieCardActions();
-  }
-}
-
-let debounceTimer = null;
-function debounceRerenderUrzadzenia() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => renderUrzadzenia(), 250);
-}
-
-function urzadzenieCardHtml(u) {
-  const rozdzielniaLabel = u.rozdzielnie ? u.rozdzielnie.kod : '—';
-  return `
-    <div class="card" data-id="${u.id}">
-      <div class="symbol">${escapeHtml(u.symbol)}</div>
-      <div class="nazwa">${escapeHtml(u.nazwa)}</div>
-      <div class="meta-grid">
-        <div class="meta-block">
-          <div class="label">Rozdzielnia</div>
-          <div class="value">${escapeHtml(rozdzielniaLabel)}</div>
-        </div>
-        <div class="meta-block">
-          <div class="label">Prąd znamionowy</div>
-          <div class="value">${u.prad_znamionowy !== null && u.prad_znamionowy !== undefined ? u.prad_znamionowy + ' A' : '—'}</div>
-        </div>
-        <div class="meta-block">
-          <div class="label">Napięcie</div>
-          <div class="value">${u.napiecie !== null && u.napiecie !== undefined ? u.napiecie + ' V' : '—'}</div>
-        </div>
-        ${u.uwagi ? `<div class="meta-block full"><div class="label">Uwagi</div><div class="value">${escapeHtml(u.uwagi)}</div></div>` : ''}
-      </div>
-      ${zdjeciaRowHtml(u.zdjecia)}
-      <div class="footer-row">
-        <span>Dodano: ${formatDateTime(u.created_at)}</span>
-      </div>
-      ${isLoggedIn() ? `
-        <div class="btn-row">
-          <button class="btn-secondary btn-edit">✏️ Edytuj</button>
-          <button class="btn-danger btn-delete">🗑️ Usuń</button>
-        </div>
-      ` : ''}
-    </div>
-  `;
-}
-
-function bindUrzadzenieCardActions() {
-  document.querySelectorAll('#list-slot .card').forEach(card => {
-    const id = card.dataset.id;
-    const editBtn = card.querySelector('.btn-edit');
-    const delBtn = card.querySelector('.btn-delete');
-    if (editBtn) editBtn.addEventListener('click', () => showUrzadzenieForm(id));
-    if (delBtn) delBtn.addEventListener('click', () => deleteUrzadzenie(id));
-  });
-}
-
-function showUrzadzenieForm(id) {
-  const existing = id ? currentUrzadzeniaData?.find(u => u.id === id) : null;
-  const recordId = id || crypto.randomUUID();
-  const pm = createPhotoManager(existing?.zdjecia, 3);
-  const rozdzielnieOptions = rozdzielnieCache.map(r =>
-    `<option value="${r.id}" ${existing?.rozdzielnia_id === r.id ? 'selected' : ''}>${escapeHtml(r.kod)} — ${escapeHtml(r.nazwa)}</option>`
-  ).join('');
-
-  document.getElementById('form-slot').innerHTML = `
-    <div class="card">
-      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj urządzenie' : 'Nowe urządzenie'}</h3>
-      <form id="urzadzenie-form">
-        <label class="field"><span>Symbol</span><input required name="symbol" value="${escapeHtml(existing?.symbol || '')}" placeholder="np. M-103"></label>
-        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}" placeholder="np. Wentylator wyciągowy"></label>
-        <label class="field"><span>Rozdzielnia</span>
-          <select required name="rozdzielnia_id"><option value="">— wybierz —</option>${rozdzielnieOptions}</select>
-        </label>
-        <label class="field"><span>Prąd znamionowy (A)</span><input type="number" step="0.01" name="prad_znamionowy" value="${existing?.prad_znamionowy ?? ''}" placeholder="np. 12.5"></label>
-        <label class="field"><span>Napięcie (V)</span><input type="number" step="0.01" name="napiecie" value="${existing?.napiecie ?? ''}" placeholder="np. 400"></label>
-        <label class="field"><span>Uwagi</span><textarea name="uwagi" rows="2">${escapeHtml(existing?.uwagi || '')}</textarea></label>
-        ${photoManagerHtml(pm, 'urzadzenie')}
-        <div class="btn-row">
-          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj urządzenie'}</button>
-          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
-        </div>
-      </form>
-    </div>
-  `;
-  bindPhotoPicker('urzadzenie', pm);
-
-  document.getElementById('cancel-form').addEventListener('click', () => {
-    document.getElementById('form-slot').innerHTML = '';
-  });
-
-  document.getElementById('urzadzenie-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Zapisywanie…';
-    try {
-      const zdjecia = await finalizujZdjecia('urzadzenia', recordId, pm, existing?.zdjecia);
-      const payload = {
-        symbol: fd.get('symbol').trim(),
-        nazwa: fd.get('nazwa').trim(),
-        rozdzielnia_id: fd.get('rozdzielnia_id'),
-        prad_znamionowy: fd.get('prad_znamionowy') ? Number(fd.get('prad_znamionowy')) : null,
-        napiecie: fd.get('napiecie') ? Number(fd.get('napiecie')) : null,
-        uwagi: fd.get('uwagi').trim() || null,
-        zdjecia,
-      };
-      if (id) {
-        const { error } = await sb.from('urzadzenia').update(payload).eq('id', id);
-        if (error) throw error;
-        showAlert('Zapisano zmiany.', 'info');
-      } else {
-        payload.id = recordId;
-        const { error } = await sb.from('urzadzenia').insert(payload);
-        if (error) throw error;
-        showAlert('Dodano urządzenie.', 'info');
-      }
-      renderUrzadzenia();
-    } catch (err) {
-      showAlert('Nie udało się zapisać: ' + (err.message || err));
-      submitBtn.disabled = false;
-      submitBtn.textContent = id ? 'Zapisz zmiany' : 'Dodaj urządzenie';
-    }
-  });
-}
-
-let currentUrzadzeniaData = null;
-async function deleteUrzadzenie(id) {
-  if (!confirm('Na pewno usunąć to urządzenie?')) return;
-  const existing = currentUrzadzeniaData?.find(u => u.id === id);
-  const { error } = await sb.from('urzadzenia').delete().eq('id', id);
-  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
-  for (const url of existing?.zdjecia || []) await deleteStoragePhoto(url);
-  showAlert('Usunięto urządzenie.', 'info');
-  renderUrzadzenia();
-}
-
-// Zapisujemy referencję do aktualnie wyświetlanych urządzeń, żeby formularz
-// edycji mógł się wstępnie wypełnić bez dodatkowego zapytania do bazy.
-const _origRenderUrzadzenia = renderUrzadzenia;
-renderUrzadzenia = async function() {
-  await fetchRozdzielnieList();
-  let query = sb.from('urzadzenia').select('*, rozdzielnie(kod, nazwa)').order('created_at', { ascending: false });
-  const { data, error } = await query;
-  if (error) throw error;
-  currentUrzadzeniaData = data || [];
-  return _origRenderUrzadzenia();
-};
-
-/* ================================================================
-   SEKCJA: ROZDZIELNIE
-================================================================ */
-async function renderRozdzielnie() {
-  const { data: fetched, error } = await sb.from('rozdzielnie').select('*');
-  if (error) throw error;
-  const data = fetched.sort((a, b) => numerKoduRozdzielni(a.kod) - numerKoduRozdzielni(b.kod));
-
-  els.content.innerHTML = `
-    <div class="row-between">
-      <h2 class="section-title">Rozdzielnie</h2>
-      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add-rozdzielnia" style="width:auto;">+ Dodaj</button>` : ''}
-    </div>
-    <div id="form-slot"></div>
-    <div id="list-slot">
-      ${data.length ? data.map(r => rozdzielniaCardHtml(r)).join('') : '<p class="empty-state">Brak rozdzielni w bazie.</p>'}
-    </div>
-  `;
-
-  document.querySelectorAll('.btn-show-devices').forEach(btn => {
-    btn.addEventListener('click', () => switchTab('urzadzenia', { rozdzielniaId: btn.dataset.id }));
-  });
-
-  if (isLoggedIn()) {
-    document.getElementById('btn-add-rozdzielnia').addEventListener('click', () => showRozdzielniaForm(null, data));
-    document.querySelectorAll('#list-slot .card').forEach(card => {
-      const id = card.dataset.id;
-      card.querySelector('.btn-edit')?.addEventListener('click', () => showRozdzielniaForm(id, data));
-      card.querySelector('.btn-delete')?.addEventListener('click', () => deleteRozdzielnia(id));
-    });
-  }
-}
-
-function rozdzielniaCardHtml(r) {
-  return `
-    <div class="card" data-id="${r.id}">
-      <div class="symbol">${escapeHtml(r.kod)}</div>
-      <div class="nazwa">${escapeHtml(r.nazwa)}</div>
-      ${r.lokalizacja ? `<p style="color:var(--text-dim);font-size:13px;margin:0 0 10px;">📍 ${escapeHtml(r.lokalizacja)}</p>` : ''}
-      <div class="footer-row"><span>Dodano: ${formatDateTime(r.created_at)}</span></div>
-      <div class="btn-row" style="margin-bottom:8px;">
-        <button class="btn-secondary btn-show-devices" data-id="${r.id}">⚡ Pokaż urządzenia</button>
-      </div>
-      ${isLoggedIn() && r.google_maps_url ? `<a class="link" href="${escapeHtml(r.google_maps_url)}" target="_blank" rel="noopener"><button class="btn-ghost btn-block">📍 Google Maps</button></a>` : ''}
-      ${isLoggedIn() ? `
-        <div class="btn-row" style="margin-top:8px;">
-          <button class="btn-secondary btn-edit">✏️ Edytuj</button>
-          <button class="btn-danger btn-delete">🗑️ Usuń</button>
-        </div>` : ''}
-    </div>
-  `;
-}
-
-function showRozdzielniaForm(id, allData) {
-  const existing = id ? allData.find(r => r.id === id) : null;
-  document.getElementById('form-slot').innerHTML = `
-    <div class="card">
-      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj rozdzielnię' : 'Nowa rozdzielnia'}</h3>
-      <form id="rozdzielnia-form">
-        <label class="field"><span>Kod</span><input required name="kod" value="${escapeHtml(existing?.kod || '')}" placeholder="np. T50"></label>
-        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}" placeholder="np. Rozdzielnia Sprężarkowni"></label>
-        <label class="field"><span>Lokalizacja</span><input name="lokalizacja" value="${escapeHtml(existing?.lokalizacja || '')}" placeholder="np. Hala D, parter"></label>
-        <label class="field"><span>Link do Google Maps (opcjonalnie)</span><input name="google_maps_url" value="${escapeHtml(existing?.google_maps_url || '')}" placeholder="https://maps.google.com/..."></label>
-        <div class="btn-row">
-          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj rozdzielnię'}</button>
-          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.getElementById('cancel-form').addEventListener('click', () => { document.getElementById('form-slot').innerHTML = ''; });
-  document.getElementById('rozdzielnia-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const payload = {
-      kod: fd.get('kod').trim(),
-      nazwa: fd.get('nazwa').trim(),
-      lokalizacja: fd.get('lokalizacja').trim() || null,
-      google_maps_url: fd.get('google_maps_url').trim() || null,
-    };
-    const { error } = id
-      ? await sb.from('rozdzielnie').update(payload).eq('id', id)
-      : await sb.from('rozdzielnie').insert(payload);
-    if (error) { showAlert('Nie udało się zapisać: ' + error.message); return; }
-    showAlert(id ? 'Zapisano zmiany.' : 'Dodano rozdzielnię.', 'info');
-    renderRozdzielnie();
-  });
-}
-
-async function deleteRozdzielnia(id) {
-  if (!confirm('Usunięcie rozdzielni jest możliwe tylko, gdy nie ma przypisanych do niej urządzeń. Kontynuować?')) return;
-  const { error } = await sb.from('rozdzielnie').delete().eq('id', id);
-  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
-  showAlert('Usunięto rozdzielnię.', 'info');
-  renderRozdzielnie();
+  const usuniete = (originalUrls || []).filter(u => !pm.existing.includes(u));
+  for (const u of usuniete) await deleteStoragePhoto(u);
+  let finalne = [...pm.existing];
+  if (pm.files.length) finalne = finalne.concat(await uploadPhotos(table, recordId, pm.files));
+  return finalne;
 }
 
 /* ================================================================
-   SEKCJA: TERMOPARY
+   SEKCJA: ADMINISTRACJA
 ================================================================ */
-async function renderTermopary() {
-  const { data, error } = await sb.from('termopary').select('*').order('created_at', { ascending: false });
-  if (error) throw error;
-
-  const historyByTermopara = {};
-  const { data: histData } = await sb.from('termopary_historia').select('*').order('data_wymiany', { ascending: false });
-  (histData || []).forEach(h => {
-    if (!historyByTermopara[h.termopara_id]) historyByTermopara[h.termopara_id] = [];
-    historyByTermopara[h.termopara_id].push(h);
-  });
-
-  els.content.innerHTML = `
-    <div class="row-between">
-      <h2 class="section-title">Termopary</h2>
-      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add-termopara" style="width:auto;">+ Dodaj</button>` : ''}
-    </div>
-    <div id="form-slot"></div>
-    <div id="list-slot">
-      ${data.length ? data.map(t => termoparaCardHtml(t, historyByTermopara[t.id] || [])).join('') : '<p class="empty-state">Brak termopar w bazie.</p>'}
-    </div>
-  `;
-
-  document.querySelectorAll('.btn-wymiana').forEach(btn => {
-    btn.addEventListener('click', () => wymianaTermopary(btn.dataset.id));
-  });
-
-  if (isLoggedIn()) {
-    document.getElementById('btn-add-termopara').addEventListener('click', () => showTermoparaForm(null, data));
-    document.querySelectorAll('#list-slot .card').forEach(card => {
-      const id = card.dataset.id;
-      card.querySelector('.btn-edit')?.addEventListener('click', () => showTermoparaForm(id, data));
-      card.querySelector('.btn-delete')?.addEventListener('click', () => deleteTermopara(id));
-    });
-  }
-}
-
-function termoparaCardHtml(t, history) {
-  const avgDays = sredniaZywotnosc(history);
-  const zywotnoscEfektywna = avgDays !== null ? avgDays : t.zywotnosc_dni;
-  const zywotnoscLabel = avgDays !== null
-    ? `${avgDays} dni (śr. z ostatnich wymian)`
-    : `${t.zywotnosc_dni} dni (ręcznie — brak wystarczającej historii)`;
-  const nextDate = addDays(t.ostatnia_wymiana, zywotnoscEfektywna);
-  const daysLeft = daysBetween(nextDate, new Date());
-  const overdue = daysLeft < 0;
-  const statusLabel = overdue ? 'DO WYMIANY' : t.status;
-  const historyLines = history.slice(0, 3).map(h => `<div style="font-size:13px;color:var(--text-dim);">${new Date(h.data_wymiany).toLocaleDateString('pl-PL')}</div>`).join('');
-
-  return `
-    <div class="card ${overdue ? 'termopara-bad' : ''}" data-id="${t.id}">
-      <div class="row-between" style="margin-bottom:0;">
-        <div class="symbol">${escapeHtml(t.symbol)}</div>
-        <span class="status-pill ${overdue ? 'bad' : ''}"><span class="dot"></span>${escapeHtml(statusLabel)}</span>
-      </div>
-      <div class="nazwa">${escapeHtml(t.nazwa)}</div>
-      <div class="meta-grid">
-        <div class="meta-block full"><div class="label">Lokalizacja</div><div class="value">${escapeHtml(t.lokalizacja || '—')}</div></div>
-        <div class="meta-block"><div class="label">Ostatnia wymiana</div><div class="value">${t.ostatnia_wymiana}</div></div>
-        <div class="meta-block"><div class="label">Żywotność</div><div class="value">${zywotnoscLabel}</div></div>
-        <div class="meta-block full"><div class="label">Następna wymiana</div><div class="value">${nextDate.toLocaleDateString('pl-PL')} (${daysLeft >= 0 ? daysLeft + ' dni' : 'zaległe ' + Math.abs(daysLeft) + ' dni'})</div></div>
-      </div>
-      ${historyLines ? `<div style="margin-bottom:10px;"><div class="label" style="font-size:10px;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">Historia wymian — ostatnie 3</div>${historyLines}</div>` : ''}
-      ${zdjeciaRowHtml(t.zdjecia)}
-      <div class="footer-row"><span>Dodano: ${formatDateTime(t.created_at)}</span></div>
-      <button class="btn-primary btn-block btn-wymiana" data-id="${t.id}" style="margin-bottom:8px;">🔧 Wymiana termopary</button>
-      ${isLoggedIn() ? `
-        <div class="btn-row">
-          <button class="btn-secondary btn-edit">✏️ Edytuj</button>
-          <button class="btn-danger btn-delete">🗑️ Usuń</button>
-        </div>` : ''}
-    </div>
-  `;
-}
-
-async function wymianaTermopary(id) {
-  if (!confirm('Zarejestrować dzisiejszą wymianę tej termopary?')) return;
-  const today = new Date().toISOString().slice(0, 10);
-  const { error } = await sb.from('termopary_historia').insert({ termopara_id: id, data_wymiany: today });
-  if (error) { showAlert('Nie udało się zapisać wymiany: ' + error.message); return; }
-  showAlert('Zarejestrowano wymianę.', 'info');
-  renderTermopary();
-}
-
-function showTermoparaForm(id, allData) {
-  const existing = id ? allData.find(t => t.id === id) : null;
-  const recordId = id || crypto.randomUUID();
-  const pm = createPhotoManager(existing?.zdjecia, 2);
-  document.getElementById('form-slot').innerHTML = `
-    <div class="card">
-      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj termoparę' : 'Nowa termopara'}</h3>
-      <form id="termopara-form">
-        <label class="field"><span>Symbol</span><input required name="symbol" value="${escapeHtml(existing?.symbol || '')}" placeholder="np. TP-003"></label>
-        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}" placeholder="np. Termopara pieca 3"></label>
-        <label class="field"><span>Lokalizacja</span><input name="lokalizacja" value="${escapeHtml(existing?.lokalizacja || '')}"></label>
-        <label class="field"><span>Status</span>
-          <select name="status">
-            <option value="OK" ${existing?.status === 'OK' ? 'selected' : ''}>OK</option>
-            <option value="AWARIA" ${existing?.status === 'AWARIA' ? 'selected' : ''}>Awaria</option>
-          </select>
-        </label>
-        <label class="field"><span>Ostatnia wymiana</span><input required type="date" name="ostatnia_wymiana" value="${existing?.ostatnia_wymiana || new Date().toISOString().slice(0,10)}"></label>
-        <label class="field"><span>Żywotność startowa (dni)</span><input required type="number" min="1" name="zywotnosc_dni" value="${existing?.zywotnosc_dni || 90}"></label>
-        <p style="font-size:12px;color:var(--text-dim);margin-top:-8px;">Używana tylko dopóki nie zarejestrowano co najmniej 2 wymian — potem strona liczy żywotność automatycznie jako średnią z ostatnich wymian.</p>
-        ${photoManagerHtml(pm, 'termopara')}
-        <div class="btn-row">
-          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj termoparę'}</button>
-          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
-        </div>
-      </form>
-    </div>
-  `;
-  bindPhotoPicker('termopara', pm);
-  document.getElementById('cancel-form').addEventListener('click', () => { document.getElementById('form-slot').innerHTML = ''; });
-  document.getElementById('termopara-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Zapisywanie…';
-    try {
-      const zdjecia = await finalizujZdjecia('termopary', recordId, pm, existing?.zdjecia);
-      const payload = {
-        symbol: fd.get('symbol').trim(),
-        nazwa: fd.get('nazwa').trim(),
-        lokalizacja: fd.get('lokalizacja').trim() || null,
-        status: fd.get('status'),
-        ostatnia_wymiana: fd.get('ostatnia_wymiana'),
-        zywotnosc_dni: Number(fd.get('zywotnosc_dni')),
-        zdjecia,
-      };
-      if (id) {
-        const { error } = await sb.from('termopary').update(payload).eq('id', id);
-        if (error) throw error;
-        showAlert('Zapisano zmiany.', 'info');
-      } else {
-        payload.id = recordId;
-        const { error } = await sb.from('termopary').insert(payload);
-        if (error) throw error;
-        showAlert('Dodano termoparę.', 'info');
-      }
-      renderTermopary();
-    } catch (err) {
-      showAlert('Nie udało się zapisać: ' + (err.message || err));
-      submitBtn.disabled = false;
-      submitBtn.textContent = id ? 'Zapisz zmiany' : 'Dodaj termoparę';
-    }
-  });
-}
-
-async function deleteTermopara(id) {
-  if (!confirm('Na pewno usunąć tę termoparę? Historia wymian również zostanie usunięta.')) return;
-  const { data: existing } = await sb.from('termopary').select('zdjecia').eq('id', id).single();
-  const { error } = await sb.from('termopary').delete().eq('id', id);
-  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
-  for (const url of existing?.zdjecia || []) await deleteStoragePhoto(url);
-  showAlert('Usunięto termoparę.', 'info');
-  renderTermopary();
-}
-
-/* ================================================================
-   SEKCJA: INNE URZĄDZENIA
-================================================================ */
-async function renderInne() {
-  const { data, error } = await sb.from('inne_urzadzenia').select('*').order('created_at', { ascending: false });
-  if (error) throw error;
-
-  els.content.innerHTML = `
-    <div class="row-between">
-      <h2 class="section-title">Inne urządzenia</h2>
-      ${isLoggedIn() ? `<button class="btn-primary" id="btn-add-inne" style="width:auto;">+ Dodaj</button>` : ''}
-    </div>
-    <div id="form-slot"></div>
-    <div id="list-slot">
-      ${data.length ? data.map(u => inneCardHtml(u)).join('') : '<p class="empty-state">Brak nietypowych urządzeń w bazie.</p>'}
-    </div>
-  `;
-
-  if (isLoggedIn()) {
-    document.getElementById('btn-add-inne').addEventListener('click', () => showInneForm(null, data));
-    document.querySelectorAll('#list-slot .card').forEach(card => {
-      const id = card.dataset.id;
-      card.querySelector('.btn-edit')?.addEventListener('click', () => showInneForm(id, data));
-      card.querySelector('.btn-delete')?.addEventListener('click', () => deleteInne(id));
-    });
-  }
-}
-
-function inneCardHtml(u) {
-  return `
-    <div class="card" data-id="${u.id}">
-      ${u.symbol ? `<div class="symbol">${escapeHtml(u.symbol)}</div>` : ''}
-      <div class="nazwa">${escapeHtml(u.nazwa)}</div>
-      ${u.lokalizacja ? `<p style="color:var(--text-dim);font-size:13px;margin:0 0 10px;">📍 ${escapeHtml(u.lokalizacja)}</p>` : ''}
-      ${u.uwagi ? `<div class="meta-block" style="margin-bottom:10px;"><div class="label">Uwagi</div><div class="value">${escapeHtml(u.uwagi)}</div></div>` : ''}
-      <div class="footer-row"><span>Dodano: ${formatDateTime(u.created_at)}</span></div>
-      ${isLoggedIn() ? `
-        <div class="btn-row">
-          <button class="btn-secondary btn-edit">✏️ Edytuj</button>
-          <button class="btn-danger btn-delete">🗑️ Usuń</button>
-        </div>` : ''}
-    </div>
-  `;
-}
-
-function showInneForm(id, allData) {
-  const existing = id ? allData.find(u => u.id === id) : null;
-  document.getElementById('form-slot').innerHTML = `
-    <div class="card">
-      <h3 style="margin-top:0;font-family:'Bebas Neue';font-size:19px;">${id ? 'Edytuj urządzenie' : 'Nowe inne urządzenie'}</h3>
-      <form id="inne-form">
-        <label class="field"><span>Symbol (opcjonalnie)</span><input name="symbol" value="${escapeHtml(existing?.symbol || '')}"></label>
-        <label class="field"><span>Nazwa</span><input required name="nazwa" value="${escapeHtml(existing?.nazwa || '')}"></label>
-        <label class="field"><span>Lokalizacja</span><input name="lokalizacja" value="${escapeHtml(existing?.lokalizacja || '')}"></label>
-        <label class="field"><span>Uwagi</span><textarea name="uwagi" rows="2">${escapeHtml(existing?.uwagi || '')}</textarea></label>
-        <div class="btn-row">
-          <button type="submit" class="btn-primary">${id ? 'Zapisz zmiany' : 'Dodaj urządzenie'}</button>
-          <button type="button" class="btn-ghost" id="cancel-form">Anuluj</button>
-        </div>
-      </form>
-    </div>
-  `;
-  document.getElementById('cancel-form').addEventListener('click', () => { document.getElementById('form-slot').innerHTML = ''; });
-  document.getElementById('inne-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const payload = {
-      symbol: fd.get('symbol').trim() || null,
-      nazwa: fd.get('nazwa').trim(),
-      lokalizacja: fd.get('lokalizacja').trim() || null,
-      uwagi: fd.get('uwagi').trim() || null,
-    };
-    const { error } = id
-      ? await sb.from('inne_urzadzenia').update(payload).eq('id', id)
-      : await sb.from('inne_urzadzenia').insert(payload);
-    if (error) { showAlert('Nie udało się zapisać: ' + error.message); return; }
-    showAlert(id ? 'Zapisano zmiany.' : 'Dodano urządzenie.', 'info');
-    renderInne();
-  });
-}
-
-async function deleteInne(id) {
-  if (!confirm('Na pewno usunąć to urządzenie?')) return;
-  const { error } = await sb.from('inne_urzadzenia').delete().eq('id', id);
-  if (error) { showAlert('Nie udało się usunąć: ' + error.message); return; }
-  showAlert('Usunięto urządzenie.', 'info');
-  renderInne();
-}
-
-/* ================================================================
-   SEKCJA: ADMINISTRACJA (logowanie / wylogowanie)
-================================================================ */
-async function renderAdmin() {
+function renderAdmin() {
   if (!isLoggedIn()) {
     els.content.innerHTML = `
-      <h2 class="section-title">Panel administracyjny</h2>
+      <h2 class="section-title" style="margin-bottom:14px;">Panel administracyjny</h2>
       <div class="admin-section">
         <h3>Logowanie</h3>
         <p class="hint">Zaloguj się kontem administratora, żeby dodawać, edytować i usuwać dane w katalogu.</p>
@@ -1473,7 +1786,7 @@ async function renderAdmin() {
   }
 
   els.content.innerHTML = `
-    <h2 class="section-title">Panel administracyjny</h2>
+    <h2 class="section-title" style="margin-bottom:14px;">Panel administracyjny</h2>
     <div class="admin-section">
       <h3>Zalogowano jako</h3>
       <p class="hint">${escapeHtml(session.user.email)}</p>
@@ -1481,58 +1794,64 @@ async function renderAdmin() {
     </div>
     <div class="admin-section">
       <h3>⚡ Urządzenia</h3>
-      <p class="hint">Dodawaj, edytuj i usuwaj urządzenia w zakładce "Urządzenia".</p>
+      <p class="hint">W bazie: ${DANE.urzadzenia.length}. Dodawaj i edytuj w zakładce „Urządzenia".</p>
       <button class="btn-secondary btn-block" data-tab="urzadzenia">Przejdź do Urządzeń</button>
     </div>
     <div class="admin-section">
       <h3>🗄️ Rozdzielnie</h3>
-      <p class="hint">Zarządzaj rozdzielniami i ich lokalizacją w zakładce "Rozdzielnie".</p>
+      <p class="hint">W bazie: ${DANE.rozdzielnie.length}. Zarządzaj lokalizacjami w zakładce „Rozdzielnie".</p>
       <button class="btn-secondary btn-block" data-tab="rozdzielnie">Przejdź do Rozdzielni</button>
     </div>
     <div class="admin-section">
       <h3>🌡️ Termopary</h3>
-      <p class="hint">Dodawaj termopary i rejestruj ich wymiany w zakładce "Termopary".</p>
+      <p class="hint">W bazie: ${DANE.termopary.length}. Rejestruj wymiany w zakładce „Termopary".</p>
       <button class="btn-secondary btn-block" data-tab="termopary">Przejdź do Termopar</button>
     </div>
     <div class="admin-section">
       <h3>📍 Inne urządzenia</h3>
-      <p class="hint">Dodawaj nietypowe urządzenia w zakładce "Inne urządzenia".</p>
+      <p class="hint">W bazie: ${DANE.inne_urzadzenia.length}.</p>
       <button class="btn-secondary btn-block" data-tab="inne">Przejdź do Innych urządzeń</button>
     </div>
   `;
 
   document.getElementById('btn-logout').addEventListener('click', logout);
-  document.querySelectorAll('.admin-section [data-tab]').forEach(btn => {
+  els.content.querySelectorAll('.admin-section [data-tab]').forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 }
 
 /* ================================================================
-   ZACHOWANIE POZYCJI PRZY ODŚWIEŻANIU POJEDYNCZEJ SEKCJI
-   Zapis urządzenia, rejestracja wymiany termopary itp. przeładowują
-   samą listę (z pominięciem render()). Poniżej "opakowujemy" te funkcje,
-   żeby również one wracały na to samo miejsce listy.
+   TRYB OFFLINE — rejestracja pomocnika przeglądarki
 ================================================================ */
-function zachowajPozycje(fn) {
-  return async function (...args) {
-    zapiszPozycje(false);
-    try {
-      return await fn.apply(this, args);
-    } finally {
-      przywrocPozycje();
-    }
-  };
+function initServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err =>
+      console.warn('Tryb offline niedostępny:', err));
+  });
 }
-renderUrzadzenia = zachowajPozycje(renderUrzadzenia);
-renderRozdzielnie = zachowajPozycje(renderRozdzielnie);
-renderTermopary = zachowajPozycje(renderTermopary);
-renderInne = zachowajPozycje(renderInne);
+
+/* Powrót zasięgu — odświeżamy dane automatycznie */
+window.addEventListener('online', () => {
+  if (daneZKopii) render();
+});
+window.addEventListener('offline', () => {
+  showAlert('Utracono połączenie — strona działa na zapisanej kopii danych.');
+});
 
 /* ================================================================
    START
 ================================================================ */
+els.tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
 (async function start() {
   initMotyw();
+  wczytajSortowanie();
+  initSzukanie();
+  initPodglad();
+  initServiceWorker();
   await initSession();
   render({ naGore: true });
 })();
