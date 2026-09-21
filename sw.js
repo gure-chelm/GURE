@@ -7,7 +7,7 @@
    w WERSJA poniżej (v1 → v2 …). Dzięki temu telefony na pewno
    pobiorą nową wersję zamiast pokazywać starą kopię.
 ============================================================ */
-const WERSJA = 'katalog-v3';
+const WERSJA = 'katalog-v4';
 
 const SZKIELET = [
   './',
