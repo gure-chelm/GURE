@@ -1,0 +1,90 @@
+# ============================================================
+#  Sygnał aktywności bazy Supabase
+#
+#  Plik musi trafić do repozytorium pod ścieżką:
+#      .github/workflows/sygnal.yml
+#
+#  Co robi: raz dziennie dopisuje jeden wpis do tabeli `aktywnosc`
+#  w Supabase. Dzięki temu baza ma regularny ruch i nie zostaje
+#  uśpiona po 7 dniach bezczynności.
+# ============================================================
+
+name: Sygnał aktywności bazy
+
+on:
+  schedule:
+    # Codziennie o 6:17 UTC (czyli 7:17 lub 8:17 u nas, zależnie od pory roku).
+    # Nierówna minuta celowo — o pełnych godzinach GitHub ma największe kolejki.
+    #
+    # Gdybyś mimo wszystko chciał rzadziej, podmień linijkę poniżej na:
+    #     - cron: '17 6 */3 * *'     (co 3 dni)
+    # Odradzam rzadziej niż co 3 dni — uzasadnienie w INSTRUKCJI.
+    - cron: '17 6 * * *'
+
+  # Pozwala odpalić ręcznie z zakładki Actions — przydatne do sprawdzenia,
+  # czy wszystko działa, bez czekania do jutra.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sygnal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Dopisz wpis do bazy
+        env:
+          # Te dwie wartości są już publiczne w pliku index.html,
+          # więc ich obecność tutaj niczego nie ujawnia.
+          URL: https://yimyjcrnibvgdrtjhzmi.supabase.co
+          KLUCZ: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpbXlqY3JuaWJ2Z2RydGpoem1pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk5MzU2MjYsImV4cCI6MjEwNTUxMTYyNn0.u5fTGhmKQRWKVG7eJRp-XUhdozNGmjx5IZyNWHrvGig
+        run: |
+          kod=$(curl --silent --show-error --max-time 30 \
+                     --output /tmp/odpowiedz.txt --write-out '%{http_code}' \
+                     -X POST "$URL/rest/v1/aktywnosc" \
+                     -H "apikey: $KLUCZ" \
+                     -H "Authorization: Bearer $KLUCZ" \
+                     -H "Content-Type: application/json" \
+                     -H "Prefer: return=minimal" \
+                     -d '{"zrodlo":"github-actions"}')
+
+          echo "Odpowiedź serwera: $kod"
+          if [ "$kod" != "201" ]; then
+            echo "::error::Nie udało się dopisać wpisu (kod $kod)."
+            cat /tmp/odpowiedz.txt
+            exit 1
+          fi
+          echo "Wpis dopisany — baza dostała sygnał."
+
+      - name: Pobierz repozytorium
+        uses: actions/checkout@v4
+
+      # GitHub wyłącza harmonogram po 60 dniach bez żadnej aktywności
+      # w repozytorium. Ten krok co ~20 dni zapisuje znacznik czasu,
+      # dzięki czemu repozytorium nigdy nie zostaje uznane za porzucone.
+      - name: Odśwież znacznik repozytorium
+        run: |
+          plik=.github/ostatni-sygnal.txt
+          teraz=$(date -u +%s)
+          poprzedni=$(head -n1 "$plik" 2>/dev/null | tr -dc '0-9')
+          [ -z "$poprzedni" ] && poprzedni=0
+          wiek=$(( (teraz - poprzedni) / 86400 ))
+
+          if [ "$wiek" -lt 20 ]; then
+            echo "Znacznik ma $wiek dni — commit niepotrzebny."
+            exit 0
+          fi
+
+          mkdir -p .github
+          {
+            echo "$teraz"
+            date -u +"Ostatni sygnal: %Y-%m-%d %H:%M UTC"
+          } > "$plik"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$plik"
+          git commit -m "Znacznik aktywności repozytorium (automatycznie)"
+          git push
+          echo "Znacznik odświeżony."
